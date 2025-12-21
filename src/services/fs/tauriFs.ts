@@ -24,5 +24,9 @@ export async function listFolderOnce(folderPath: string): Promise<ListedFile[]> 
 }
 
 export async function readUtf8Text(path: string): Promise<string> {
-    return readTextFile(path);
+    const text = await readTextFile(path);
+
+    // Bitbox-exported files sometimes include trailing NUL bytes (0x00),
+    // which break DOMParser with "Extra content at the end of the document".
+    return text.replace(/\u0000/g, "");
 }
