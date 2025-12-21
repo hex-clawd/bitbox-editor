@@ -18,7 +18,9 @@ export async function listFolderOnce(folderPath: string): Promise<ListedFile[]> 
         return {
             name,
             path: fullPath,
-            isDir: !!e.children, // same assumption you currently use
+            // Tauri v2 DirEntry provides explicit booleans:
+            // isDirectory / isFile / isSymlink
+            isDir: !!e.isDirectory,
         };
     });
 }
