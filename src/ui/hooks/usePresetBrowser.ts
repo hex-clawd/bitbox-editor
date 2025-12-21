@@ -6,6 +6,10 @@ import type { BitboxPreset } from "../../core/domain/bitboxPreset";
 
 const controller = new PresetBrowserController();
 
+function isPresetXml(x: ListedFile) {
+    return !x.isDir && x.name.toLowerCase().endsWith(".xml");
+}
+
 export function usePresetBrowser() {
     const [folderPath, setFolderPath] = useState<string | null>(null);
     const [items, setItems] = useState<ListedFile[]>([]);
@@ -17,7 +21,7 @@ export function usePresetBrowser() {
     const [selectedPreset, setSelectedPreset] = useState<BitboxPreset | null>(null);
 
     const presetFiles = useMemo(
-        () => items.filter((x) => !x.isDir).filter((x) => x.name.toLowerCase().endsWith(".xml")),
+        () => items.filter(isPresetXml),
         [items]
     );
 
@@ -35,10 +39,25 @@ export function usePresetBrowser() {
             setIsBusy(true);
             const res = await controller.loadFolder(selected);
             if (!res.ok) throw new Error(res.error);
+
             setItems(res.items);
+
+            // ✅ Auto-open first preset so a single-item folder loads immediately
+            const firstPreset = res.items.find(isPresetXml) ?? null;
+            if (firstPreset) {
+                const p = await controller.loadPresetXml(firstPreset);
+                if (!p.ok) throw new Error(p.error);
+
+                setSelectedFile(firstPreset);
+                setSelectedText(p.xml);
+                setSelectedPreset(p.preset);
+            }
         } catch (e) {
             setError(String(e));
             setItems([]);
+            setSelectedFile(null);
+            setSelectedText("");
+            setSelectedPreset(null);
         } finally {
             setIsBusy(false);
         }
