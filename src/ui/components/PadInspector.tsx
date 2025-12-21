@@ -14,12 +14,9 @@ function toRows(params: Record<string, string>): Row[] {
 }
 
 function formatMaybeDb(v: string): string {
-  // Blackbox often stores gaindb in thousandths of dB (e.g. -3000 = -3.0 dB)
-  // This is a best-effort display only.
   const n = Number(v);
   if (!Number.isFinite(n)) return v;
   if (Math.abs(n) >= 1000 && Math.abs(n) % 1 === 0) {
-    // show with 1 decimal place
     return `${(n / 1000).toFixed(1)} dB`;
   }
   return v;
@@ -41,8 +38,7 @@ const IMPORTANT_KEYS: Array<{ key: string; label?: string }> = [
   { key: "samtrigtype", label: "Trig" },
   { key: "loopmode" },
   { key: "midimode" },
-  { key: "cellmode" },
-  { key: "multisammode", label: "Multisample mode" },
+  { key: "reverse" },
   { key: "samstart" },
   { key: "samlen" },
   { key: "loopstart" },
@@ -68,7 +64,6 @@ export default function PadInspector({ pad }: Props) {
   const filteredRows = useMemo(() => {
     const f = filter.trim().toLowerCase();
     if (!f) return allRows;
-
     return allRows.filter((r) => r.key.toLowerCase().includes(f) || r.value.toLowerCase().includes(f));
   }, [allRows, filter]);
 
@@ -91,7 +86,7 @@ export default function PadInspector({ pad }: Props) {
             R{pad.grid.row} C{pad.grid.column} ({pad.type})
           </div>
           <div style={{ opacity: 0.85 }}>
-            kind: <code>{pad.sampleKind ?? "unknown"}</code>
+            mode: <code>{pad.padMode}</code>
           </div>
           <div style={{ opacity: 0.85 }}>
             slices: <code>{pad.slices?.length ?? 0}</code>
@@ -109,7 +104,7 @@ export default function PadInspector({ pad }: Props) {
         </div>
       </div>
 
-      {/* Important params */}
+      {/* Key params */}
       <div
         style={{
           border: "1px solid rgba(255,255,255,0.15)",
@@ -143,7 +138,7 @@ export default function PadInspector({ pad }: Props) {
         )}
       </div>
 
-      {/* All params (filterable) */}
+      {/* All params */}
       <div
         style={{
           border: "1px solid rgba(255,255,255,0.15)",

@@ -6,31 +6,31 @@ import type { BitboxPreset, Pad } from "./bitboxPreset";
  * If missing, returns a new preset with an empty pad inserted.
  */
 export function ensurePadAt(
-    preset: BitboxPreset,
-    row: number,
-    column: number,
-    opts?: { gridCols?: number; type?: string }
+  preset: BitboxPreset,
+  row: number,
+  column: number,
+  opts?: { gridCols?: number; type?: string }
 ): BitboxPreset {
-    const gridCols = opts?.gridCols ?? 4;
-    const type = opts?.type ?? "sample";
+  const gridCols = opts?.gridCols ?? 4;
+  const type = opts?.type ?? "sample";
 
-    const exists = preset.pads.some((p) => p.grid.row === row && p.grid.column === column);
-    if (exists) return preset;
+  const exists = preset.pads.some((p) => p.grid.row === row && p.grid.column === column);
+  if (exists) return preset;
 
-    const newPad: Pad = {
-        index: row * gridCols + column,
-        grid: { row, column },
-        type,
-        sampleKind: "unknown",
-        filename: "", // empty placeholder (UI can treat empty string as "no filename")
-        params: {},
-        slices: undefined,
-        assets: [],
-        meta: { createdByEditor: "1" },
-    };
+  const newPad: Pad = {
+    index: row * gridCols + column,
+    grid: { row, column },
+    type,
+    padMode: "sample",
+    filename: "",
+    params: {},
+    slices: undefined,
+    assets: [],
+    meta: { createdByEditor: "1" },
+  };
 
-    return {
-        ...preset,
-        pads: [...preset.pads, newPad].sort((a, b) => (a.grid.row - b.grid.row) || (a.grid.column - b.grid.column)),
-    };
+  return {
+    ...preset,
+    pads: [...preset.pads, newPad].sort((a, b) => (a.grid.row - b.grid.row) || (a.grid.column - b.grid.column)),
+  };
 }

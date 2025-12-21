@@ -78,6 +78,7 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad, onC
               const isEmpty = !p;
 
               const displayText = p?.filename ? shortNameFromPath(p.filename) : "";
+              const modeText = p ? p.padMode : "empty";
 
               return (
                 <button
@@ -120,9 +121,7 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad, onC
                     }}
                   >
                     <span>{`R${row}C${col}`}</span>
-                    <span style={{ opacity: 0.75 }}>
-                      {p ? (p.sampleKind ?? "unknown") : "empty"}
-                    </span>
+                    <span style={{ opacity: 0.75 }}>{modeText}</span>
                   </div>
 
                   <div
