@@ -12,50 +12,8 @@ function joinPath(a: string, b: string) {
     return `${a}/${b}`;
 }
 
-function isPresetFolderCandidate(x: ListedFile) {
-    return x.isDir;
-}
-
 function hasPresetXml(children: ListedFile[]) {
     return children.some((c) => !c.isDir && c.name.toLowerCase() === "preset.xml");
-}
-
-function toPresetXmlFile(presetFolder: ListedFile): ListedFile {
-    return {
-        name: "preset.xml",
-        path: joinPath(presetFolder.path, "preset.xml"),
-        isDir: false,
-    };
-}
-
-/**
- * Normalizes parser output to a strict BitboxPreset + warnings array.
- * Supports both:
- *  - BitboxPreset
- *  - { preset: BitboxPreset, warnings?: string[] }  (or similar wrapper)
- */
-function normalizeParsedPreset(parsed: unknown): { preset: BitboxPreset; warnings: string[] } {
-    const anyParsed = parsed as any;
-
-    // Case A: parser already returns a BitboxPreset-like object
-    if (anyParsed && typeof anyParsed === "object" && "pads" in anyParsed) {
-        const preset = anyParsed as BitboxPreset;
-        const warnings: string[] = Array.isArray((preset as any).warnings) ? (preset as any).warnings : [];
-        return { preset, warnings };
-    }
-
-    // Case B: parser returns a wrapper { preset, warnings }
-    if (anyParsed && typeof anyParsed === "object" && "preset" in anyParsed) {
-        const preset = anyParsed.preset as BitboxPreset;
-        const warnings: string[] = Array.isArray(anyParsed.warnings) ? anyParsed.warnings : [];
-        return { preset, warnings };
-    }
-
-    throw new Error(
-        `Parser returned unexpected shape (expected BitboxPreset or { preset: BitboxPreset, warnings?: string[] }). Got: ${Object.prototype.toString.call(
-            parsed
-        )}`
-    );
 }
 
 export class PresetBrowserController {
@@ -66,18 +24,14 @@ export class PresetBrowserController {
     async loadFolder(rootPath: string): Promise<Result<{ items: ListedFile[] }>> {
         try {
             const presetsPath = joinPath(rootPath, "Presets");
+
             console.log("[PresetBrowserController] loadFolder rootPath =", rootPath);
             console.log("[PresetBrowserController] scanning presetsPath =", presetsPath);
 
             const entries = await listFolderOnce(presetsPath);
-            console.log(
-                "[PresetBrowserController] entries under presetsPath:",
-                entries.map((e) => ({ name: e.name, isDir: e.isDir, path: e.path }))
-            );
 
-            const candidateFolders = entries.filter(isPresetFolderCandidate);
+            const candidateFolders = entries.filter((e) => e.isDir);
 
-            // Filter to folders that contain preset.xml
             const presetFolders: ListedFile[] = [];
             for (const folder of candidateFolders) {
                 const children = await listFolderOnce(folder.path);
@@ -96,7 +50,7 @@ export class PresetBrowserController {
     }
 
     /**
-     * Loads and parses a preset XML file (ROOT/Presets/<PresetName>/preset.xml).
+     * Loads and parses ROOT/Presets/<PresetName>/preset.xml
      */
     async loadPresetXml(xmlFile: ListedFile): Promise<Result<{ xml: string; preset: BitboxPreset }>> {
         try {
@@ -105,23 +59,15 @@ export class PresetBrowserController {
             const xml = await readUtf8Text(xmlFile.path);
 
             const parsed = parseBitboxPresetXml(xml);
-            const { preset, warnings } = normalizeParsedPreset(parsed);
 
-            // Ensure warnings are attached to preset for UI consumption
-            const anyPreset = preset as any;
-            if (!Array.isArray(anyPreset.warnings)) anyPreset.warnings = [];
-            if (warnings.length) anyPreset.warnings.push(...warnings);
-
-            // Absolute last-resort: prevent UI crash if pads is missing
-            if (!("pads" in (preset as any))) {
-                anyPreset.warnings.push("Parsed preset is missing 'pads' field; using empty pads to avoid crash.");
-                anyPreset.pads = [];
+            // Parser returns ParseResult union { ok: true, preset } | { ok: false, error, preset? }
+            if (!parsed.ok) {
+                // Optional: if parsed.preset exists, you could still return it,
+                // but simplest is to surface parse error into the UI error stripe.
+                return { ok: false, error: parsed.error };
             }
 
-            console.log("[PresetBrowserController] parsed preset keys:", Object.keys(preset as any));
-            console.log("[PresetBrowserController] pads type:", typeof (preset as any).pads);
-
-            return { ok: true, xml, preset };
+            return { ok: true, xml, preset: parsed.preset };
         } catch (e) {
             return { ok: false, error: String(e) };
         }
