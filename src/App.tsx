@@ -122,49 +122,53 @@ export default function App() {
                       <p style={{ opacity: 0.8 }}>No parsed model.</p>
                   ) : (
                       <>
-                        {selectedPreset.warnings.length > 0 && (
-                            <div style={{ marginBottom: 8, opacity: 0.9 }}>
-                              <strong>Warnings:</strong>
-                              <ul style={{ marginTop: 6 }}>
-                                {selectedPreset.warnings.map((w, i) => (
-                                    <li key={i} style={{ opacity: 0.85 }}>{w}</li>
-                                ))}
-                              </ul>
-                            </div>
-                        )}
+                          {selectedPreset.warnings.length > 0 && (
+                              <div style={{marginBottom: 8, opacity: 0.9}}>
+                                  <strong>Warnings:</strong>
+                                  <ul style={{marginTop: 6}}>
+                                      {selectedPreset.warnings.map((w, i) => (
+                                          <li key={i} style={{opacity: 0.85}}>{w}</li>
+                                      ))}
+                                  </ul>
+                              </div>
+                          )}
 
-                        <pre
-                            style={{
-                              whiteSpace: "pre-wrap",
-                              wordBreak: "break-word",
-                              padding: 12,
-                              borderRadius: 8,
-                              border: "1px solid rgba(255,255,255,0.15)",
-                              background: "rgba(0,0,0,0.18)",
-                              fontSize: 12,
-                            }}
-                        >
-                    {JSON.stringify(
-                        {
-                            name: selectedPreset.name,
-                            pads: selectedPreset.pads.length,
-                            padPreview: selectedPreset.pads.slice(0, 12).map((p) => ({
-                                index: p.index,
-                                grid: p.grid,
-                                layers: p.layers.map((l) => ({
-                                    layerIndex: l.layerIndex,
-                                    kind: l.fileRef?.kind,
-                                    filename: l.filename,
-                                })),
-                            })),
-                            sampleRefsCount: selectedPreset.sampleRefs.length,
-                            sampleRefsPreview: selectedPreset.sampleRefs.slice(0, 20),
-                        },
-                        null,
-                        2
-                    )}
-                    
-                  </pre>
+                          <pre
+                              style={{
+                                  whiteSpace: "pre-wrap",
+                                  wordBreak: "break-word",
+                                  padding: 12,
+                                  borderRadius: 8,
+                                  border: "1px solid rgba(255,255,255,0.15)",
+                                  background: "rgba(0,0,0,0.18)",
+                                  fontSize: 12,
+                              }}
+                          >
+  {JSON.stringify(
+      {
+          name: selectedPreset.name,
+          pads: selectedPreset.pads
+              .slice()
+              .sort((a, b) => {
+                  const ar = a.grid?.row ?? 0;
+                  const br = b.grid?.row ?? 0;
+                  if (ar !== br) return ar - br;
+                  const ac = a.grid?.column ?? 0;
+                  const bc = b.grid?.column ?? 0;
+                  return ac - bc;
+              })
+              .map((p) => ({
+                  row: p.grid?.row,
+                  column: p.grid?.column,
+                  filename: p.filename ?? "",
+              })),
+          warnings: selectedPreset.warnings,
+      },
+      null,
+      2
+  )}
+</pre>
+
                       </>
                   )}
                 </>

@@ -1,4 +1,4 @@
-import type { BitboxPreset, FileRef, Pad, PadLayer, SampleRef } from "../domain/bitboxPreset";
+import type { AssetRef, BitboxPreset, Pad, SampleRef } from "../domain/bitboxPreset";
 
 export type ParseResult =
     | { ok: true; preset: BitboxPreset }
@@ -7,16 +7,12 @@ export type ParseResult =
 const PRESET_NAME_ATTR_CANDIDATES = ["name", "presetName", "title"];
 
 /**
- * Best-effort Bitbox/Blackbox preset parser.
+ * Schema-aware Blackbox preset parser (document > session semantics).
  * Pure: no file system, no UI.
- *
- * Supports:
- * - Blackbox format: <cell row="" column="" layer="" filename="">
- * - (Future) Bitbox format: <pad ...>
  */
 export function parseBitboxPresetXml(inputXml: string): ParseResult {
     // Strip embedded NUL bytes (exports sometimes contain trailing 0x00)
-    let xml = stripNulBytes(inputXml);
+    const xml = stripNulBytes(inputXml);
 
     const warnings: string[] = [];
     const trimmed = xml.trim();
@@ -24,57 +20,82 @@ export function parseBitboxPresetXml(inputXml: string): ParseResult {
 
     let doc: Document;
     try {
-        const parser = new DOMParser();
-        doc = parser.parseFromString(xml, "application/xml");
+        doc = new DOMParser().parseFromString(xml, "application/xml");
     } catch (e) {
         return { ok: false, error: `DOMParser failed: ${String(e)}` };
     }
 
-    // Detect parsererror
     const parserError = doc.getElementsByTagName("parsererror")[0];
     if (parserError) {
-        // Retry with salvage (handles "extra content at end of document" cases too)
-        const salvaged = salvageLikelyXmlDocument(xml);
+        // Best-effort salvage: strip trailing junk after last '>'
+        const salvaged = salvageTrailingJunk(xml);
         if (salvaged.xml !== xml) {
-            const parser2 = new DOMParser();
-            const doc2 = parser2.parseFromString(salvaged.xml, "application/xml");
+            const doc2 = new DOMParser().parseFromString(salvaged.xml, "application/xml");
             const parserError2 = doc2.getElementsByTagName("parsererror")[0];
             if (!parserError2) {
                 doc = doc2;
                 warnings.push(...salvaged.warnings);
             } else {
-                return {
-                    ok: false,
-                    error: `Invalid XML (after salvage): ${parserError2.textContent ?? "parsererror"}`,
-                };
+                return { ok: false, error: `Invalid XML (after salvage): ${parserError2.textContent ?? "parsererror"}` };
             }
         } else {
             return { ok: false, error: `Invalid XML: ${parserError.textContent ?? "parsererror"}` };
         }
     }
 
-    const presetName = detectPresetName(doc, warnings);
+    const name = detectPresetName(doc, warnings);
 
-    // --- Blackbox-style: <cell> ---
-    const cellEls = doc.getElementsByTagName("cell");
-    let pads: Pad[] = [];
-    let sampleRefs: SampleRef[] = [];
-
-    if (cellEls.length > 0) {
-        const parsed = parseBlackboxCells(doc, warnings);
-        pads = parsed.pads;
-        sampleRefs = parsed.sampleRefs;
-    } else {
-        warnings.push("No <cell> elements found (not a Blackbox preset?). Bitbox <pad> parsing not implemented yet.");
+    const sessionEl = findDocumentSession(doc);
+    if (!sessionEl) {
+        return { ok: false, error: "Could not find <document><session> element (expected Blackbox preset structure)." };
     }
 
-    // Deduplicate refs
-    sampleRefs = dedupeSampleRefs(sampleRefs);
+    // Collect DIRECT children <cell> of session
+    const sessionCells = Array.from(sessionEl.children).filter(
+        (el) => el.tagName === "cell" || el.tagName === "Cell"
+    ) as Element[];
+
+    // Partition cells by type
+    const padCandidateCells = sessionCells.filter((c) => hasAttr(c, "row") && hasAttr(c, "column"));
+    const assetCells = sessionCells.filter((c) => (c.getAttribute("type") ?? "").toLowerCase() === "asset");
+
+    // Build pads from padCandidateCells, but only those that are meaningful + of type sample (for now)
+    const pads = parsePadsFromSessionCells(padCandidateCells, warnings);
+
+    // Link assets to pads using params@asssrcrow/asssrccol
+    const assets = parseAssets(assetCells, warnings);
+    linkAssetsToPads(pads, assets, warnings);
+
+    // Build sampleRefs convenience list
+    const sampleRefs: SampleRef[] = [];
+
+    for (const p of pads) {
+        if (p.filename) {
+            const kind = classifyRefKind(p.filename);
+            sampleRefs.push({
+                path: p.filename,
+                role: "pad",
+                padIndex: p.index,
+                xmlHint: `document/session/cell[row=${p.grid.row},col=${p.grid.column}]@filename`,
+                refKind: kind,
+            });
+        }
+        for (const a of p.assets) {
+            const kind = classifyRefKind(a.filename);
+            sampleRefs.push({
+                path: a.filename,
+                role: "asset",
+                padIndex: p.index,
+                xmlHint: `document/session/cell[type=asset]@filename -> pad[row=${p.grid.row},col=${p.grid.column}]`,
+                refKind: kind,
+            });
+        }
+    }
 
     const preset: BitboxPreset = {
-        name: presetName,
-        pads,
-        sampleRefs,
+        name,
+        pads: pads.sort((a, b) => a.index - b.index),
+        sampleRefs: dedupeSampleRefs(sampleRefs),
         warnings,
         rawXml: inputXml,
     };
@@ -83,120 +104,225 @@ export function parseBitboxPresetXml(inputXml: string): ParseResult {
 }
 
 // -------------------------
-// Blackbox parsing: <cell>
+// Session traversal
 // -------------------------
 
-function parseBlackboxCells(doc: Document, warnings: string[]): { pads: Pad[]; sampleRefs: SampleRef[] } {
-    const cellEls = Array.from(doc.getElementsByTagName("cell"));
-    if (cellEls.length === 0) {
-        warnings.push("No <cell> elements found.");
-        return { pads: [], sampleRefs: [] };
-    }
+function findDocumentSession(doc: Document): Element | null {
+    // We expect: <document> <session> ... </session> </document>
+    const documentEls = Array.from(doc.getElementsByTagName("document"));
+    const docEl = documentEls[0] ?? doc.documentElement;
 
-    // Infer grid size (columns are 0-based in your file)
-    const coords = cellEls.map((el) => ({
-        row: parseIntSafe(el.getAttribute("row")),
-        col: parseIntSafe(el.getAttribute("column")),
-    }));
-    const maxCol = Math.max(...coords.map((c) => c.col ?? -1));
+    if (!docEl) return null;
+
+    // Find first direct <session> child under <document> if possible
+    const directSession = Array.from(docEl.children).find((c) => c.tagName === "session" || c.tagName === "Session");
+    if (directSession) return directSession as Element;
+
+    // Fallback: any session anywhere
+    const sessions = docEl.getElementsByTagName("session");
+    if (sessions.length > 0) return sessions[0];
+
+    const sessions2 = docEl.getElementsByTagName("Session");
+    if (sessions2.length > 0) return sessions2[0];
+
+    return null;
+}
+
+// -------------------------
+// Pad parsing (only session direct children)
+// -------------------------
+
+function parsePadsFromSessionCells(cells: Element[], warnings: string[]): Pad[] {
+    // Infer grid width by max column in candidate pad cells
+    const cols = cells
+        .map((c) => parseIntSafe(c.getAttribute("column")))
+        .filter((n): n is number => n !== undefined);
+    const maxCol = cols.length ? Math.max(...cols) : 0;
     const gridWidth = Math.max(1, maxCol + 1);
 
-    // Group by (row,col) -> multiple layers
-    const keyOf = (row: number, col: number) => `${row},${col}`;
-    const groups = new Map<string, Element[]>();
+    // Group and MERGE pads by (row,col)
+    const padMap = new Map<string, Pad>();
 
-    for (const el of cellEls) {
-        const row = parseIntSafe(el.getAttribute("row"));
-        const col = parseIntSafe(el.getAttribute("column"));
-        if (row == null || col == null) continue;
+    for (const cell of cells) {
+        const row = parseIntSafe(cell.getAttribute("row"));
+        const column = parseIntSafe(cell.getAttribute("column"));
+        if (row == null || column == null) continue;
 
-        const key = keyOf(row, col);
-        const arr = groups.get(key);
-        if (arr) arr.push(el);
-        else groups.set(key, [el]);
+        const type = (cell.getAttribute("type") ?? "").toLowerCase();
+        // Your current focus is pads of type sample
+        // (You can loosen this later to include other pad types.)
+        if (type && type !== "sample") continue;
+
+        const key = `${row},${column}`;
+        const index = row * gridWidth + column;
+
+        const filename = cell.getAttribute("filename")?.trim() ?? undefined;
+
+        const paramsEl = firstChildByTag(cell, "params");
+        const params = paramsEl ? attributesToRecord(paramsEl) : {};
+
+        // Slices (if present)
+        const slices = extractSlices(cell);
+
+        // Determine sampleKind: multisample vs slice vs single
+        const sampleKind = classifySampleKind(params, slices);
+
+        // Merge strategy:
+        // - filename: keep first non-empty, else take new
+        // - params: fill missing keys (first wins is safest)
+        // - slices: if existing has none and new has some, take new (or keep longer)
+        const existing = padMap.get(key);
+        if (!existing) {
+            padMap.set(key, {
+                index,
+                grid: { row, column },
+                type: type || "sample",
+                sampleKind,
+                filename,
+                params,
+                slices: slices.length ? slices : undefined,
+                assets: [],
+                meta: undefined,
+            });
+        } else {
+            // filename
+            if (!existing.filename && filename) existing.filename = filename;
+
+            // params: first wins, but fill gaps
+            for (const [k, v] of Object.entries(params)) {
+                if (existing.params[k] == null) existing.params[k] = v;
+            }
+
+            // sampleKind: upgrade unknown to known, or keep existing
+            if (existing.sampleKind === "unknown" && sampleKind !== "unknown") {
+                existing.sampleKind = sampleKind;
+            }
+
+            // slices: prefer non-empty; if both non-empty prefer longer list
+            if ((!existing.slices || existing.slices.length === 0) && slices.length > 0) {
+                existing.slices = slices;
+            } else if (existing.slices && slices.length > (existing.slices?.length ?? 0)) {
+                existing.slices = slices;
+            }
+
+            // meta: merge other cell attributes (excluding structural ones)
+            const meta: Record<string, string> = { ...(existing.meta ?? {}) };
+            for (const a of Array.from(cell.attributes)) {
+                if (a.name === "row" || a.name === "column" || a.name === "layer" || a.name === "filename" || a.name === "type")
+                    continue;
+                if (meta[a.name] == null) meta[a.name] = a.value;
+            }
+            existing.meta = Object.keys(meta).length ? meta : existing.meta;
+        }
     }
 
-    const pads: Pad[] = [];
-    const refs: SampleRef[] = [];
+    const pads = Array.from(padMap.values());
 
-    for (const [key, els] of groups.entries()) {
-        const [rowStr, colStr] = key.split(",");
-        const row = Number(rowStr);
-        const column = Number(colStr);
+    // Filter: keep only pads that are “filled in”
+    // Definition: has filename OR has params OR has slices
+    const filtered = pads.filter((p) => !!p.filename || Object.keys(p.params).length > 0 || (p.slices?.length ?? 0) > 0);
 
-        const padIndex = row * gridWidth + column;
+    if (filtered.length === 0) {
+        warnings.push("No pad cells detected under document/session with row+column (type=sample).");
+    }
 
-        // Build layers (one per <cell ... layer="x" ...>)
-        const layers: PadLayer[] = els
-            .map((cellEl) => {
-                const layerIndex = parseIntSafe(cellEl.getAttribute("layer")) ?? 0;
-                const filename = cellEl.getAttribute("filename")?.trim() ?? undefined;
+    return filtered;
+}
 
-                const fileRef = filename ? classifyFileRef(filename) : undefined;
+function classifySampleKind(params: Record<string, string>, slices: number[]): Pad["sampleKind"] {
+    // multisammode="1" strongly indicates multisample pad
+    const multisam = params["multisammode"];
+    if (multisam === "1") return "multisample";
 
-                // (Optional) capture some other interesting attributes later
-                const meta: Record<string, string> = {};
-                for (const a of Array.from(cellEl.attributes)) {
-                    if (a.name === "row" || a.name === "column" || a.name === "layer" || a.name === "filename") continue;
-                    meta[a.name] = a.value;
-                }
+    // slices present => slice pad
+    if (slices.length > 0) return "slice";
 
-                // Emit a SampleRef entry if filename exists
-                if (filename) {
-                    refs.push({
-                        path: filename,
-                        source: "attribute",
-                        padIndex,
-                        xmlHint: `cell[row=${row},col=${column},layer=${layerIndex}]@filename`,
-                        refKind: fileRef?.kind ?? "unknown",
-                    });
-                }
+    // Otherwise it's usually a single sample/oneshot/loop in Blackbox
+    return "single";
+}
 
-                const layer: PadLayer = {
-                    layerIndex,
-                    filename,
-                    fileRef,
-                    meta: Object.keys(meta).length ? meta : undefined,
-                };
+function extractSlices(cell: Element): number[] {
+    // <slices><slice pos="..."/></slices>
+    const slicesEl = firstChildByTag(cell, "slices");
+    if (!slicesEl) return [];
 
-                return layer;
-            })
-            .sort((a, b) => a.layerIndex - b.layerIndex);
+    const sliceEls = Array.from(slicesEl.getElementsByTagName("slice"));
+    const out: number[] = [];
+    for (const s of sliceEls) {
+        const pos = parseIntSafe(s.getAttribute("pos"));
+        if (pos != null) out.push(pos);
+    }
+    return out;
+}
 
-        pads.push({
-            index: padIndex,
-            grid: { row, column },
-            layers,
-            meta: undefined,
+// -------------------------
+// Asset parsing + linking
+// -------------------------
+
+function parseAssets(assetCells: Element[], warnings: string[]): AssetRef[] {
+    const assets: AssetRef[] = [];
+
+    for (const cell of assetCells) {
+        const filename = cell.getAttribute("filename")?.trim();
+        if (!filename) continue;
+
+        const paramsEl = firstChildByTag(cell, "params");
+        const params = paramsEl ? attributesToRecord(paramsEl) : {};
+
+        const asssrcrow = parseIntSafe(params["asssrcrow"]);
+        const asssrccol = parseIntSafe(params["asssrccol"]);
+
+        const rootnote = parseIntSafe(params["rootnote"]);
+        const keyrangebottom = parseIntSafe(params["keyrangebottom"]);
+        const keyrangetop = parseIntSafe(params["keyrangetop"]);
+        const velrangebottom = parseIntSafe(params["velrangebottom"]);
+        const velrangetop = parseIntSafe(params["velrangetop"]);
+
+        assets.push({
+            filename,
+            params,
+            sourcePad: asssrcrow != null && asssrccol != null ? { row: asssrcrow, column: asssrccol } : undefined,
+            rootnote: rootnote ?? undefined,
+            keyrange: { bottom: keyrangebottom ?? undefined, top: keyrangetop ?? undefined },
+            velrange: { bottom: velrangebottom ?? undefined, top: velrangetop ?? undefined },
         });
     }
 
-    pads.sort((a, b) => a.index - b.index);
+    if (assets.length === 0 && assetCells.length > 0) {
+        warnings.push("Found asset cells but could not parse any usable assets (missing filename?).");
+    }
 
-    return { pads, sampleRefs: refs };
+    return assets;
 }
 
-function classifyFileRef(value: string): FileRef {
-    const v = value.trim();
-    if (!v) return { kind: "unknown", value };
-
-    const lower = v.toLowerCase();
-
-    // Blackbox presets use backslashes in paths; keep as-is.
-    // A "folder" ref typically has no extension.
-    const extMatch = lower.match(/\.([a-z0-9]{1,8})$/);
-    if (extMatch) {
-        const ext = extMatch[1];
-        return { kind: "sample", path: v, ext };
+function linkAssetsToPads(pads: Pad[], assets: AssetRef[], warnings: string[]): void {
+    const padByRC = new Map<string, Pad>();
+    for (const p of pads) {
+        padByRC.set(`${p.grid.row},${p.grid.column}`, p);
     }
 
-    // If it looks like a path-ish string, treat as folder.
-    // (This matches your examples like \BB_Samples\BB_DRUM_SOURCE\BD)
-    if (v.includes("\\") || v.includes("/")) {
-        return { kind: "folder", path: v };
+    let linked = 0;
+    let unlinked = 0;
+
+    for (const a of assets) {
+        if (a.sourcePad) {
+            const key = `${a.sourcePad.row},${a.sourcePad.column}`;
+            const pad = padByRC.get(key);
+            if (pad) {
+                pad.assets.push(a);
+                linked++;
+                continue;
+            }
+        }
+        unlinked++;
     }
 
-    return { kind: "unknown", value: v };
+    if (assets.length > 0) {
+        warnings.push(`Assets linked via asssrcrow/asssrccol: ${linked}/${assets.length} (unlinked: ${unlinked}).`);
+    }
+
+    // Optional secondary heuristic (folder-root match) could be added later, but
+    // explicit asssrcrow/asssrccol is the “safe” linkage you described.
 }
 
 // -------------------------
@@ -221,57 +347,63 @@ function detectPresetName(doc: Document, warnings: string[]): string | undefined
 }
 
 // -------------------------
-// XML salvage + hygiene
+// Helpers
 // -------------------------
 
 function stripNulBytes(s: string): string {
     return s.replace(/\u0000/g, "");
 }
 
-/**
- * Attempts to salvage a single XML document if:
- * - There is junk before/after it (including "extra content at end")
- */
-function salvageLikelyXmlDocument(input: string): { xml: string; warnings: string[] } {
+function salvageTrailingJunk(input: string): { xml: string; warnings: string[] } {
     const warnings: string[] = [];
-    let s = stripNulBytes(input).trim();
-
-    // Start from XML declaration if present, else from first '<'
-    const xmlDecl = s.indexOf("<?xml");
-    if (xmlDecl >= 0) s = s.slice(xmlDecl);
-    else {
-        const firstLt = s.indexOf("<");
-        if (firstLt > 0) {
-            warnings.push(`Stripped ${firstLt} leading characters before first '<'.`);
-            s = s.slice(firstLt);
-        }
-    }
-
-    // Cut anything after last '>' (simple trailing junk removal)
+    const s = stripNulBytes(input).trim();
     const lastGt = s.lastIndexOf(">");
     if (lastGt >= 0 && lastGt < s.length - 1) {
         warnings.push(`Stripped ${s.length - (lastGt + 1)} trailing characters after last '>'.`);
-        s = s.slice(0, lastGt + 1);
+        return { xml: s.slice(0, lastGt + 1), warnings };
     }
-
     return { xml: s, warnings };
 }
 
-// -------------------------
-// Utilities
-// -------------------------
-
-function parseIntSafe(v: string | null): number | undefined {
-    if (!v) return undefined;
+function parseIntSafe(v: string | null | undefined): number | undefined {
+    if (v == null) return undefined;
     const n = Number.parseInt(v, 10);
     return Number.isFinite(n) ? n : undefined;
+}
+
+function hasAttr(el: Element, name: string): boolean {
+    const v = el.getAttribute(name);
+    return v != null && v !== "";
+}
+
+function firstChildByTag(parent: Element, tag: string): Element | null {
+    for (const c of Array.from(parent.children)) {
+        if (c.tagName === tag || c.tagName === tag[0].toUpperCase() + tag.slice(1)) return c as Element;
+    }
+    return null;
+}
+
+function attributesToRecord(el: Element): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const a of Array.from(el.attributes)) out[a.name] = a.value;
+    return out;
+}
+
+function classifyRefKind(path: string): "sample" | "folder" | "unknown" {
+    const v = path.trim();
+    if (!v) return "unknown";
+    const lower = v.toLowerCase();
+    const extMatch = lower.match(/\.([a-z0-9]{1,8})$/);
+    if (extMatch) return "sample";
+    if (v.includes("\\") || v.includes("/")) return "folder";
+    return "unknown";
 }
 
 function dedupeSampleRefs(refs: SampleRef[]): SampleRef[] {
     const seen = new Set<string>();
     const out: SampleRef[] = [];
     for (const r of refs) {
-        const key = `${r.path}||${r.padIndex ?? ""}||${r.xmlHint ?? ""}`;
+        const key = `${r.role}||${r.path}||${r.padIndex ?? ""}||${r.xmlHint ?? ""}`;
         if (seen.has(key)) continue;
         seen.add(key);
         out.push(r);

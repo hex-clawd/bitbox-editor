@@ -1,66 +1,66 @@
 export type BitboxPreset = {
-    /** Best-effort preset name (derived from XML or filename by controller later) */
     name?: string;
 
-    /** Grid pads/cells (Blackbox) or pads (Bitbox later) */
+    /** Blackbox pads parsed from document > session (type="sample" etc.) */
     pads: Pad[];
 
-    /** All referenced sample-ish paths found in the preset */
+    /** Convenience: all file references discovered (pads + assets), for future file ops */
     sampleRefs: SampleRef[];
 
-    /** Non-fatal issues found while parsing */
     warnings: string[];
-
-    /** Useful for debugging/roundtrip during early development */
     rawXml: string;
 };
 
 export type Pad = {
-    /** A stable index used for UI ordering (row-major for Blackbox) */
+    /** Stable index for ordering, derived from row/column (row-major by inferred grid width) */
     index: number;
 
-    /** Blackbox grid position if available */
-    grid?: { row: number; column: number };
+    grid: { row: number; column: number };
 
-    /** Optional label/name if present */
-    name?: string;
+    /** From pad cell@type (e.g. "sample") */
+    type: string;
 
-    /** Layers inside a pad (Blackbox cell layers, Bitbox layers later) */
-    layers: PadLayer[];
+    /** For type="sample", we classify based on params + presence of <slices> etc. */
+    sampleKind?: "slice" | "multisample" | "single" | "unknown";
 
-    /** If you want to keep unknown pad fields later */
-    meta?: Record<string, string>;
-};
-
-export type PadLayer = {
-    layerIndex: number;
-
-    /** Raw `filename` attribute from XML (Blackbox) */
+    /** The pad cell's filename attribute (can be a .wav OR a folder path root) */
     filename?: string;
 
-    /** Classified interpretation of filename */
-    fileRef?: FileRef;
+    /** Parsed params from the pad cell (<params .../>) */
+    params: Record<string, string>;
 
-    /** Optional fields you may extract later (type, gain, loop, etc.) */
+    /** If the pad has explicit slices */
+    slices?: number[]; // slice positions
+
+    /** Assets linked to this pad (multisample, etc.) */
+    assets: AssetRef[];
+
+    /** Any extra info we want to keep without understanding yet */
     meta?: Record<string, string>;
 };
 
-export type FileRef =
-    | { kind: "sample"; path: string; ext: string }
-    | { kind: "folder"; path: string }
-    | { kind: "unknown"; value: string };
+export type AssetRef = {
+    filename: string;
+    params: Record<string, string>;
+
+    /** Where this asset points (asssrcrow/asssrccol), if present */
+    sourcePad?: { row: number; column: number };
+
+    /** Extracted convenience fields if present */
+    rootnote?: number;
+    keyrange?: { bottom?: number; top?: number };
+    velrange?: { bottom?: number; top?: number };
+};
 
 export type SampleRef = {
-    /** Original string found in XML (path, filename, etc.) */
     path: string;
 
-    /** Where we found it (helps debugging + later serializer decisions) */
-    source: "attribute" | "text";
+    /** "pad" for pad cell@filename, "asset" for asset cell@filename */
+    role: "pad" | "asset";
 
-    /** Optional context */
     padIndex?: number;
     xmlHint?: string;
 
-    /** Classification */
+    /** Classification helpful for future safe file ops */
     refKind?: "sample" | "folder" | "unknown";
 };
