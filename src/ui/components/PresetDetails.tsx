@@ -7,80 +7,159 @@ type Props = {
     onSelectPad: (padKey: string) => void;
 };
 
-function padKey(p: Pad): string {
-    // row/column is the real ID
-    return `r${p.grid.row}c${p.grid.column}`;
+function padKeyFromRC(row: number, column: number): string {
+    return `r${row}c${column}`;
 }
 
-function padLabel(p: Pad): string {
-    const row = p.grid.row;
-    const col = p.grid.column;
-    const filename = p.filename ?? "";
-    const short = filename ? filename.split("\\").pop() ?? filename : "";
-    return `R${row} C${col} — ${short || "(no filename)"}`;
+function padKey(p: Pad): string {
+    return padKeyFromRC(p.grid.row, p.grid.column);
+}
+
+function shortNameFromPath(p: string): string {
+    const parts = p.split("\\").filter(Boolean);
+    return parts[parts.length - 1] ?? p;
+}
+
+function cellTitle(p: Pad): string {
+    const base = `R${p.grid.row} C${p.grid.column}`;
+    if (!p.filename) return `${base} — (no filename)`;
+    return `${base} — ${p.filename}`;
 }
 
 export default function PresetDetails({ preset, selectedPadKey, onSelectPad }: Props) {
-    const padsSorted = useMemo(() => {
-        return preset.pads
-            .slice()
-            .sort((a, b) => (a.grid.row - b.grid.row) || (a.grid.column - b.grid.column));
+    const padMap = useMemo(() => {
+        const m = new Map<string, Pad>();
+        for (const p of preset.pads) m.set(padKey(p), p);
+        return m;
     }, [preset.pads]);
 
     const selectedPad: Pad | null = useMemo(() => {
         if (!selectedPadKey) return null;
-        return padsSorted.find((p) => padKey(p) === selectedPadKey) ?? null;
-    }, [padsSorted, selectedPadKey]);
+        return padMap.get(selectedPadKey) ?? null;
+    }, [padMap, selectedPadKey]);
 
     const samplesList = useMemo(() => {
-        if (!selectedPad) return [];
-        // For multisample pads, assets contain all the actual WAVs
-        // For slice/single pads, assets may be empty and filename is the WAV.
+        if (!selectedPad) return { primary: [] as string[], assets: [] as string[] };
         const assets = selectedPad.assets?.map((a) => a.filename) ?? [];
         const primary = selectedPad.filename ? [selectedPad.filename] : [];
         return { primary, assets };
     }, [selectedPad]);
 
+    // Blackbox grid is 4x4. Your parser uses row/col from XML.
+    // UI requirement: row 0 / col 0 should be bottom-left.
+    // So we render rows visually from top (row=3) to bottom (row=0).
+    const GRID_ROWS = 4;
+    const GRID_COLS = 4;
+
     return (
-        <div style={{ display: "grid", gridTemplateColumns: "380px 1fr", gap: 16, alignItems: "start" }}>
-            {/* Left: pad list */}
+        <div style={{ display: "grid", gridTemplateColumns: "420px 1fr", gap: 16, alignItems: "start" }}>
+            {/* Left: 4x4 grid */}
             <div>
-                <h2 style={{ marginTop: 0 }}>Pads</h2>
+                <h2 style={{ marginTop: 0 }}>Pads (4×4)</h2>
 
                 <div
                     style={{
+                        display: "grid",
+                        gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
+                        gap: 10,
+                        padding: 10,
+                        borderRadius: 10,
                         border: "1px solid rgba(255,255,255,0.15)",
-                        borderRadius: 8,
-                        overflow: "hidden",
+                        background: "rgba(0,0,0,0.10)",
                     }}
                 >
-                    {padsSorted.map((p) => {
-                        const key = padKey(p);
-                        const active = key === selectedPadKey;
+                    {Array.from({ length: GRID_ROWS }).map((_, visualRowIndex) => {
+                        // visualRowIndex 0 is top row; should map to row=3
+                        const row = GRID_ROWS - 1 - visualRowIndex;
 
-                        return (
-                            <button
-                                key={key}
-                                onClick={() => onSelectPad(key)}
-                                style={{
-                                    width: "100%",
-                                    textAlign: "left",
-                                    padding: "10px 12px",
-                                    border: "none",
-                                    borderBottom: "1px solid rgba(255,255,255,0.08)",
-                                    cursor: "pointer",
-                                    background: active ? "rgba(255,255,255,0.10)" : "transparent",
-                                    color: "inherit",
-                                    fontFamily: "inherit",
-                                }}
-                                title={p.filename ?? ""}
-                            >
-                                <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>
-                                    {padLabel(p)}
-                                </div>
-                            </button>
-                        );
+                        return Array.from({ length: GRID_COLS }).map((__, col) => {
+                            const key = padKeyFromRC(row, col);
+                            const p = padMap.get(key);
+                            const isActive = key === selectedPadKey;
+                            const isEmpty = !p;
+
+                            const displayText = p?.filename ? shortNameFromPath(p.filename) : "";
+
+                            return (
+                                <button
+                                    key={`${row}-${col}`}
+                                    onClick={() => {
+                                        if (!p) return;
+                                        onSelectPad(key);
+                                    }}
+                                    disabled={!p}
+                                    title={p ? cellTitle(p) : `R${row} C${col} — (empty)`}
+                                    style={{
+                                        height: 86,
+                                        padding: 10,
+                                        borderRadius: 10,
+                                        border: isActive
+                                            ? "2px solid rgba(255,255,255,0.55)"
+                                            : "1px solid rgba(255,255,255,0.18)",
+                                        background: isEmpty
+                                            ? "rgba(255,255,255,0.03)"
+                                            : isActive
+                                                ? "rgba(255,255,255,0.12)"
+                                                : "rgba(255,255,255,0.06)",
+                                        color: "inherit",
+                                        cursor: isEmpty ? "not-allowed" : "pointer",
+                                        textAlign: "left",
+                                        overflow: "hidden",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        justifyContent: "space-between",
+                                        fontFamily: "inherit",
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            gap: 8,
+                                            opacity: isEmpty ? 0.45 : 0.9,
+                                            fontSize: 12,
+                                            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                                        }}
+                                    >
+                                        <span>{`R${row}C${col}`}</span>
+                                        <span style={{ opacity: 0.75 }}>
+                      {p ? (p.sampleKind ?? "unknown") : ""}
+                    </span>
+                                    </div>
+
+                                    <div
+                                        style={{
+                                            marginTop: 6,
+                                            fontSize: 12,
+                                            opacity: isEmpty ? 0.35 : 0.95,
+                                            lineHeight: 1.2,
+                                            wordBreak: "break-word",
+                                            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                                        }}
+                                    >
+                                        {p ? (displayText || "(no filename)") : ""}
+                                    </div>
+
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            marginTop: 8,
+                                            fontSize: 12,
+                                            opacity: isEmpty ? 0.35 : 0.85,
+                                        }}
+                                    >
+                                        <span>{p ? `assets: ${p.assets?.length ?? 0}` : ""}</span>
+                                        <span>{p ? `slices: ${p.slices?.length ?? 0}` : ""}</span>
+                                    </div>
+                                </button>
+                            );
+                        });
                     })}
+                </div>
+
+                <div style={{ marginTop: 10, opacity: 0.75, fontSize: 12 }}>
+                    Orientation: <code>row 0 / col 0</code> is bottom-left (Blackbox style).
                 </div>
             </div>
 
@@ -89,7 +168,7 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad }: P
                 <h2 style={{ marginTop: 0 }}>Pad details</h2>
 
                 {!selectedPad ? (
-                    <p style={{ opacity: 0.8 }}>Select a pad on the left.</p>
+                    <p style={{ opacity: 0.8 }}>Click a pad in the grid.</p>
                 ) : (
                     <>
                         {/* Summary */}
@@ -143,7 +222,10 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad }: P
                             ) : (
                                 <ul style={{ margin: 0, paddingLeft: 18 }}>
                                     {samplesList.primary.map((s, i) => (
-                                        <li key={i} style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>
+                                        <li
+                                            key={i}
+                                            style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}
+                                        >
                                             {s}
                                         </li>
                                     ))}
@@ -157,10 +239,13 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad }: P
                             {samplesList.assets.length === 0 ? (
                                 <div style={{ opacity: 0.8 }}>(none)</div>
                             ) : (
-                                <div style={{ maxHeight: 260, overflow: "auto", borderRadius: 6 }}>
+                                <div style={{ maxHeight: 320, overflow: "auto", borderRadius: 6 }}>
                                     <ul style={{ margin: 0, paddingLeft: 18 }}>
                                         {samplesList.assets.map((s, i) => (
-                                            <li key={i} style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>
+                                            <li
+                                                key={i}
+                                                style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}
+                                            >
                                                 {s}
                                             </li>
                                         ))}
