@@ -1,19 +1,8 @@
-import type { BitboxPreset, Pad, SampleRef } from "../domain/bitboxPreset";
+import type { BitboxPreset, FileRef, Pad, PadLayer, SampleRef } from "../domain/bitboxPreset";
 
 export type ParseResult =
     | { ok: true; preset: BitboxPreset }
     | { ok: false; error: string; preset?: BitboxPreset };
-
-const SAMPLE_ATTR_CANDIDATES = [
-    "sample",
-    "file",
-    "filename",
-    "path",
-    "wav",
-    "wave",
-    "audio",
-    "source",
-];
 
 const PRESET_NAME_ATTR_CANDIDATES = ["name", "presetName", "title"];
 
@@ -26,7 +15,7 @@ const PRESET_NAME_ATTR_CANDIDATES = ["name", "presetName", "title"];
  * - (Future) Bitbox format: <pad ...>
  */
 export function parseBitboxPresetXml(inputXml: string): ParseResult {
-    // Strip embedded NUL bytes (Bitbox/Blackbox exports sometimes contain trailing 0x00)
+    // Strip embedded NUL bytes (exports sometimes contain trailing 0x00)
     let xml = stripNulBytes(inputXml);
 
     const warnings: string[] = [];
@@ -66,49 +55,28 @@ export function parseBitboxPresetXml(inputXml: string): ParseResult {
 
     const presetName = detectPresetName(doc, warnings);
 
-    // --- Parse pads/cells ---
-    const padElements = [
-        ...Array.from(doc.getElementsByTagName("pad")),
-        ...Array.from(doc.getElementsByTagName("Pad")),
-    ];
-
+    // --- Blackbox-style: <cell> ---
+    const cellEls = doc.getElementsByTagName("cell");
     let pads: Pad[] = [];
     let sampleRefs: SampleRef[] = [];
 
-    if (padElements.length > 0) {
-        // Bitbox-style (not your current Blackbox file, but keep for later)
-        for (const padEl of padElements) {
-            const pad = parsePad(padEl, warnings);
-            pads.push(pad);
-            for (const r of pad.sampleRefs) sampleRefs.push(r);
-        }
+    if (cellEls.length > 0) {
+        const parsed = parseBlackboxCells(doc, warnings);
+        pads = parsed.pads;
+        sampleRefs = parsed.sampleRefs;
     } else {
-        // Blackbox-style: <cell row="" column="" layer="" filename="">
-        const cellEls = doc.getElementsByTagName("cell");
-        if (cellEls.length > 0) {
-            const parsed = parseBlackboxCells(doc, warnings);
-            pads = parsed.pads;
-            sampleRefs = parsed.sampleRefs;
-        } else {
-            warnings.push(
-                "No <pad> or <cell> elements found (schema might differ). Will still scan for sample references globally."
-            );
-        }
+        warnings.push("No <cell> elements found (not a Blackbox preset?). Bitbox <pad> parsing not implemented yet.");
     }
 
-    // Global scan as a catch-all (still useful while schema is evolving)
-    const globalRefs = scanSampleRefsGlobally(doc, warnings);
-    for (const r of globalRefs) sampleRefs.push(r);
-
-    // Deduplicate by path + padIndex + hint
-    const deduped = dedupeSampleRefs(sampleRefs);
+    // Deduplicate refs
+    sampleRefs = dedupeSampleRefs(sampleRefs);
 
     const preset: BitboxPreset = {
         name: presetName,
         pads,
-        sampleRefs: deduped,
+        sampleRefs,
         warnings,
-        rawXml: inputXml, // keep original (unsanitized) for debugging; you can switch to xml if you prefer
+        rawXml: inputXml,
     };
 
     return { ok: true, preset };
@@ -130,7 +98,6 @@ function parseBlackboxCells(doc: Document, warnings: string[]): { pads: Pad[]; s
         row: parseIntSafe(el.getAttribute("row")),
         col: parseIntSafe(el.getAttribute("column")),
     }));
-
     const maxCol = Math.max(...coords.map((c) => c.col ?? -1));
     const gridWidth = Math.max(1, maxCol + 1);
 
@@ -150,158 +117,86 @@ function parseBlackboxCells(doc: Document, warnings: string[]): { pads: Pad[]; s
     }
 
     const pads: Pad[] = [];
-    const allRefs: SampleRef[] = [];
+    const refs: SampleRef[] = [];
 
     for (const [key, els] of groups.entries()) {
         const [rowStr, colStr] = key.split(",");
         const row = Number(rowStr);
-        const col = Number(colStr);
+        const column = Number(colStr);
 
-        // Make a stable index (row-major) for now
-        const padIndex = row * gridWidth + col;
+        const padIndex = row * gridWidth + column;
 
-        const refsForPad: SampleRef[] = [];
+        // Build layers (one per <cell ... layer="x" ...>)
+        const layers: PadLayer[] = els
+            .map((cellEl) => {
+                const layerIndex = parseIntSafe(cellEl.getAttribute("layer")) ?? 0;
+                const filename = cellEl.getAttribute("filename")?.trim() ?? undefined;
 
-        for (const cellEl of els) {
-            const layer = parseIntSafe(cellEl.getAttribute("layer")) ?? 0;
+                const fileRef = filename ? classifyFileRef(filename) : undefined;
 
-            // In Blackbox presets, sample path is typically in cell@filename
-            // Do NOT enforce ".wav" extension; some refs can be non-wav or symbolic.
-            const filename = cellEl.getAttribute("filename")?.trim();
-            if (filename) {
-                refsForPad.push({
-                    path: filename,
-                    source: "attribute",
-                    padIndex,
-                    xmlHint: `cell[row=${row},col=${col},layer=${layer}]@filename`,
-                });
-            }
+                // (Optional) capture some other interesting attributes later
+                const meta: Record<string, string> = {};
+                for (const a of Array.from(cellEl.attributes)) {
+                    if (a.name === "row" || a.name === "column" || a.name === "layer" || a.name === "filename") continue;
+                    meta[a.name] = a.value;
+                }
 
-            // You can extend here later to pull other file-like refs from nested nodes.
-        }
+                // Emit a SampleRef entry if filename exists
+                if (filename) {
+                    refs.push({
+                        path: filename,
+                        source: "attribute",
+                        padIndex,
+                        xmlHint: `cell[row=${row},col=${column},layer=${layerIndex}]@filename`,
+                        refKind: fileRef?.kind ?? "unknown",
+                    });
+                }
 
-        const pad: Pad = {
+                const layer: PadLayer = {
+                    layerIndex,
+                    filename,
+                    fileRef,
+                    meta: Object.keys(meta).length ? meta : undefined,
+                };
+
+                return layer;
+            })
+            .sort((a, b) => a.layerIndex - b.layerIndex);
+
+        pads.push({
             index: padIndex,
-            name: undefined,
-            sampleRefs: refsForPad,
-            meta: {
-                row: String(row),
-                column: String(col),
-            },
-        };
-
-        pads.push(pad);
-        for (const r of refsForPad) allRefs.push(r);
+            grid: { row, column },
+            layers,
+            meta: undefined,
+        });
     }
 
-    // Sort pads in row-major order
-    pads.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+    pads.sort((a, b) => a.index - b.index);
 
-    return { pads, sampleRefs: dedupeSampleRefs(allRefs) };
+    return { pads, sampleRefs: refs };
 }
 
-// -------------------------
-// Bitbox-style parsing: <pad>
-// -------------------------
+function classifyFileRef(value: string): FileRef {
+    const v = value.trim();
+    if (!v) return { kind: "unknown", value };
 
-function parsePad(padEl: Element, warnings: string[]): Pad {
-    const padIndex =
-        parseIntSafe(padEl.getAttribute("index")) ??
-        parseIntSafe(padEl.getAttribute("i")) ??
-        parseIntSafe(padEl.getAttribute("num")) ??
-        parseIntSafe(padEl.getAttribute("id"));
+    const lower = v.toLowerCase();
 
-    const padName = padEl.getAttribute("name")?.trim() || padEl.getAttribute("label")?.trim() || undefined;
-
-    const refs = extractSampleRefsFromElement(padEl, padIndex);
-
-    // Capture some attributes as meta (handy during schema discovery)
-    const meta: Record<string, string> = {};
-    for (const a of Array.from(padEl.attributes)) {
-        if (a.name && a.value && !SAMPLE_ATTR_CANDIDATES.includes(a.name)) {
-            meta[a.name] = a.value;
-        }
+    // Blackbox presets use backslashes in paths; keep as-is.
+    // A "folder" ref typically has no extension.
+    const extMatch = lower.match(/\.([a-z0-9]{1,8})$/);
+    if (extMatch) {
+        const ext = extMatch[1];
+        return { kind: "sample", path: v, ext };
     }
 
-    return {
-        index: padIndex,
-        name: padName,
-        sampleRefs: refs,
-        meta: Object.keys(meta).length ? meta : undefined,
-    };
-}
-
-function extractSampleRefsFromElement(el: Element, padIndex?: number): SampleRef[] {
-    const out: SampleRef[] = [];
-
-    // 1) Attributes like sample=".../kick.wav"
-    for (const attrName of SAMPLE_ATTR_CANDIDATES) {
-        const v = el.getAttribute(attrName);
-        if (v && looksLikeAudioPath(v)) {
-            out.push({
-                path: v,
-                source: "attribute",
-                padIndex,
-                xmlHint: `${el.tagName}@${attrName}`,
-            });
-        }
+    // If it looks like a path-ish string, treat as folder.
+    // (This matches your examples like \BB_Samples\BB_DRUM_SOURCE\BD)
+    if (v.includes("\\") || v.includes("/")) {
+        return { kind: "folder", path: v };
     }
 
-    // 2) Nested elements often used: <sample><file>...</file></sample>, etc.
-    const nestedTagCandidates = ["sample", "Sample", "file", "File", "path", "Path", "filename", "Filename"];
-    for (const tag of nestedTagCandidates) {
-        for (const node of Array.from(el.getElementsByTagName(tag))) {
-            const t = node.textContent?.trim();
-            if (t && looksLikeAudioPath(t)) {
-                out.push({
-                    path: t,
-                    source: "text",
-                    padIndex,
-                    xmlHint: `${el.tagName}/${tag}`,
-                });
-            }
-        }
-    }
-
-    return out;
-}
-
-// -------------------------
-// Global scan (catch-all)
-// -------------------------
-
-function scanSampleRefsGlobally(doc: Document, warnings: string[]): SampleRef[] {
-    const out: SampleRef[] = [];
-    const all = doc.getElementsByTagName("*");
-
-    for (const el of Array.from(all)) {
-        // Harvest any attribute that looks like it contains an audio file path
-        for (const a of Array.from(el.attributes)) {
-            if (looksLikeAudioPath(a.value)) {
-                out.push({
-                    path: a.value,
-                    source: "attribute",
-                    xmlHint: `${el.tagName}@${a.name}`,
-                });
-            }
-        }
-
-        // Harvest text nodes that look like an audio file path (rare, but possible)
-        const t = el.textContent?.trim();
-        if (t && looksLikeAudioPath(t) && t.length < 512) {
-            out.push({
-                path: t,
-                source: "text",
-                xmlHint: `${el.tagName}#text`,
-            });
-        }
-    }
-
-    if (out.length === 0) {
-        warnings.push("No audio-like references found during global scan.");
-    }
-
-    return out;
+    return { kind: "unknown", value: v };
 }
 
 // -------------------------
@@ -336,9 +231,6 @@ function stripNulBytes(s: string): string {
 /**
  * Attempts to salvage a single XML document if:
  * - There is junk before/after it (including "extra content at end")
- * - Multiple XML docs are concatenated (rare)
- *
- * Best-effort. Only used when initial DOMParser returns parsererror.
  */
 function salvageLikelyXmlDocument(input: string): { xml: string; warnings: string[] } {
     const warnings: string[] = [];
@@ -362,60 +254,12 @@ function salvageLikelyXmlDocument(input: string): { xml: string; warnings: strin
         s = s.slice(0, lastGt + 1);
     }
 
-    // If multiple docs concatenated, attempt to keep only up to the first root closing tag.
-    const rootTag = detectFirstRootTagName(s);
-    if (rootTag) {
-        const closeTag = `</${rootTag}>`;
-        const lastClose = s.lastIndexOf(closeTag);
-        if (lastClose >= 0) {
-            const end = lastClose + closeTag.length;
-            if (end < s.length) {
-                warnings.push(`Stripped trailing content after </${rootTag}> (possible concatenated XML or junk).`);
-                s = s.slice(0, end);
-            }
-        }
-    }
-
     return { xml: s, warnings };
-}
-
-function detectFirstRootTagName(xml: string): string | null {
-    let s = xml;
-
-    // Strip xml declaration
-    s = s.replace(/^\s*<\?xml[\s\S]*?\?>\s*/i, "");
-
-    // Strip leading comments
-    while (s.startsWith("<!--")) {
-        const end = s.indexOf("-->");
-        if (end < 0) break;
-        s = s.slice(end + 3).trimStart();
-    }
-
-    // Strip doctype
-    s = s.replace(/^\s*<!DOCTYPE[\s\S]*?>\s*/i, "");
-
-    const m = s.match(/^\s*<([A-Za-z_][A-Za-z0-9_\-:.]*)\b/);
-    return m?.[1] ?? null;
 }
 
 // -------------------------
 // Utilities
 // -------------------------
-
-function looksLikeAudioPath(s: string): boolean {
-    const v = s.trim();
-    if (!v) return false;
-
-    const lower = v.toLowerCase();
-    return (
-        lower.endsWith(".wav") ||
-        lower.endsWith(".aif") ||
-        lower.endsWith(".aiff") ||
-        lower.endsWith(".flac") ||
-        lower.endsWith(".mp3")
-    );
-}
 
 function parseIntSafe(v: string | null): number | undefined {
     if (!v) return undefined;

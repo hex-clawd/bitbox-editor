@@ -2,10 +2,10 @@ export type BitboxPreset = {
     /** Best-effort preset name (derived from XML or filename by controller later) */
     name?: string;
 
-    /** Pads we can detect */
+    /** Grid pads/cells (Blackbox) or pads (Bitbox later) */
     pads: Pad[];
 
-    /** All referenced sample paths found in the preset */
+    /** All referenced sample-ish paths found in the preset */
     sampleRefs: SampleRef[];
 
     /** Non-fatal issues found while parsing */
@@ -16,18 +16,39 @@ export type BitboxPreset = {
 };
 
 export type Pad = {
-    /** 0..15 or 1..16 depending on what XML provides; we keep whatever we find */
-    index?: number;
+    /** A stable index used for UI ordering (row-major for Blackbox) */
+    index: number;
 
-    /** Pad name/label if present */
+    /** Blackbox grid position if available */
+    grid?: { row: number; column: number };
+
+    /** Optional label/name if present */
     name?: string;
 
-    /** Sample refs directly associated with this pad (best-effort) */
-    sampleRefs: SampleRef[];
+    /** Layers inside a pad (Blackbox cell layers, Bitbox layers later) */
+    layers: PadLayer[];
 
     /** If you want to keep unknown pad fields later */
     meta?: Record<string, string>;
 };
+
+export type PadLayer = {
+    layerIndex: number;
+
+    /** Raw `filename` attribute from XML (Blackbox) */
+    filename?: string;
+
+    /** Classified interpretation of filename */
+    fileRef?: FileRef;
+
+    /** Optional fields you may extract later (type, gain, loop, etc.) */
+    meta?: Record<string, string>;
+};
+
+export type FileRef =
+    | { kind: "sample"; path: string; ext: string }
+    | { kind: "folder"; path: string }
+    | { kind: "unknown"; value: string };
 
 export type SampleRef = {
     /** Original string found in XML (path, filename, etc.) */
@@ -38,5 +59,8 @@ export type SampleRef = {
 
     /** Optional context */
     padIndex?: number;
-    xmlHint?: string; // e.g. "pad@sample", "sample/file", etc.
+    xmlHint?: string;
+
+    /** Classification */
+    refKind?: "sample" | "folder" | "unknown";
 };

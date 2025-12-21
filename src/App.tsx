@@ -146,13 +146,24 @@ export default function App() {
                         >
                     {JSON.stringify(
                         {
-                          name: selectedPreset.name,
-                          pads: selectedPreset.pads.length,
-                          sampleRefs: selectedPreset.sampleRefs,
+                            name: selectedPreset.name,
+                            pads: selectedPreset.pads.length,
+                            padPreview: selectedPreset.pads.slice(0, 12).map((p) => ({
+                                index: p.index,
+                                grid: p.grid,
+                                layers: p.layers.map((l) => ({
+                                    layerIndex: l.layerIndex,
+                                    kind: l.fileRef?.kind,
+                                    filename: l.filename,
+                                })),
+                            })),
+                            sampleRefsCount: selectedPreset.sampleRefs.length,
+                            sampleRefsPreview: selectedPreset.sampleRefs.slice(0, 20),
                         },
                         null,
                         2
                     )}
+                    
                   </pre>
                       </>
                   )}
