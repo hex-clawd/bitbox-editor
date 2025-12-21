@@ -1,16 +1,67 @@
 import React, { useMemo, useState } from "react";
 import type { Pad } from "../../core/domain/bitboxPreset";
+import { buildBlackboxConfRows, buildBlackboxMainRows, type DisplayRow } from "../viewModels/blackboxParamView";
 
 type Props = {
   pad: Pad;
 };
 
-type Row = { key: string; value: string };
+type RawRow = { key: string; value: string };
 
-function toRows(params: Record<string, string>): Row[] {
+function toRawRows(params: Record<string, string>): RawRow[] {
   return Object.entries(params)
     .map(([key, value]) => ({ key, value }))
     .sort((a, b) => a.key.localeCompare(b.key));
+}
+
+function renderRowsTable(rows: DisplayRow[]) {
+  if (rows.length === 0) {
+    return <div style={{ opacity: 0.8, marginTop: 8 }}>(no matching params parsed)</div>;
+  }
+
+  return (
+    <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "160px 1fr", rowGap: 6, columnGap: 12 }}>
+      {rows.map((r) => (
+        <React.Fragment key={r.label}>
+          <div style={{ opacity: 0.85, fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>
+            {r.label}
+          </div>
+          <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>
+            {r.value}
+            {r.rawKey ? (
+              <span style={{ opacity: 0.55, marginLeft: 10 }}>
+                <code>{r.rawKey}</code>
+                {r.rawValue != null ? <span>={r.rawValue}</span> : null}
+              </span>
+            ) : null}
+          </div>
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+function sectionCard(title: string, right?: React.ReactNode, children?: React.ReactNode) {
+  return (
+    <div
+      style={{
+        border: "1px solid rgba(255,255,255,0.15)",
+        borderRadius: 8,
+        padding: 12,
+        background: "rgba(0,0,0,0.18)",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
+        <h3 style={{ margin: 0 }}>{title}</h3>
+        {right}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function isLikelyDbKey(k: string): boolean {
+  return k.toLowerCase().includes("gaindb") || k.toLowerCase().endsWith("db");
 }
 
 function formatMaybeDb(v: string): string {
@@ -22,50 +73,24 @@ function formatMaybeDb(v: string): string {
   return v;
 }
 
-function isLikelyDbKey(k: string): boolean {
-  return k.toLowerCase().includes("gaindb") || k.toLowerCase().endsWith("db");
-}
-
-function renderValue(k: string, v: string): string {
+function renderRawValue(k: string, v: string): string {
   if (isLikelyDbKey(k)) return formatMaybeDb(v);
   return v;
 }
 
-const IMPORTANT_KEYS: Array<{ key: string; label?: string }> = [
-  { key: "gaindb", label: "Gain" },
-  { key: "pitch" },
-  { key: "panpos", label: "Pan" },
-  { key: "samtrigtype", label: "Trig" },
-  { key: "loopmode" },
-  { key: "midimode" },
-  { key: "reverse" },
-  { key: "samstart" },
-  { key: "samlen" },
-  { key: "loopstart" },
-  { key: "loopend" },
-  { key: "quantsize" },
-  { key: "synctype" },
-  { key: "outputbus" },
-  { key: "chokegrp" },
-];
-
 export default function PadInspector({ pad }: Props) {
   const [filter, setFilter] = useState("");
 
-  const allRows = useMemo(() => toRows(pad.params ?? {}), [pad.params]);
+  const mainRows = useMemo(() => buildBlackboxMainRows(pad.params ?? {}), [pad.params]);
+  const confRows = useMemo(() => buildBlackboxConfRows(pad.params ?? {}), [pad.params]);
 
-  const importantRows = useMemo(() => {
-    const map = new Map(allRows.map((r) => [r.key, r.value]));
-    return IMPORTANT_KEYS
-      .filter((k) => map.has(k.key))
-      .map((k) => ({ key: k.key, label: k.label ?? k.key, value: map.get(k.key) ?? "" }));
-  }, [allRows]);
+  const rawRows = useMemo(() => toRawRows(pad.params ?? {}), [pad.params]);
 
-  const filteredRows = useMemo(() => {
+  const filteredRawRows = useMemo(() => {
     const f = filter.trim().toLowerCase();
-    if (!f) return allRows;
-    return allRows.filter((r) => r.key.toLowerCase().includes(f) || r.value.toLowerCase().includes(f));
-  }, [allRows, filter]);
+    if (!f) return rawRows;
+    return rawRows.filter((r) => r.key.toLowerCase().includes(f) || r.value.toLowerCase().includes(f));
+  }, [rawRows, filter]);
 
   const showSlices = (pad.slices?.length ?? 0) > 0;
   const showAssets = (pad.assets?.length ?? 0) > 0;
@@ -104,69 +129,43 @@ export default function PadInspector({ pad }: Props) {
         </div>
       </div>
 
-      {/* Key params */}
-      <div
-        style={{
-          border: "1px solid rgba(255,255,255,0.15)",
-          borderRadius: 8,
-          padding: 12,
-          background: "rgba(0,0,0,0.18)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
-          <h3 style={{ margin: 0 }}>Key params</h3>
-          <div style={{ opacity: 0.75, fontSize: 12 }}>
-            total: <code>{allRows.length}</code>
-          </div>
-        </div>
+      {/* Main Parameters (BB-style) */}
+      {sectionCard(
+        "Main Parameters",
+        <div style={{ opacity: 0.75, fontSize: 12 }}>
+          mode: <code>{pad.padMode}</code>
+        </div>,
+        renderRowsTable(mainRows)
+      )}
 
-        {importantRows.length === 0 ? (
-          <div style={{ opacity: 0.8, marginTop: 8 }}>(no params parsed)</div>
-        ) : (
-          <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "160px 1fr", rowGap: 6, columnGap: 12 }}>
-            {importantRows.map((r) => (
-              <React.Fragment key={r.key}>
-                <div style={{ opacity: 0.8, fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>
-                  {r.label}
-                </div>
-                <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>
-                  {renderValue(r.key, r.value)}
-                </div>
-              </React.Fragment>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Conf Parameters (BB-style) */}
+      {sectionCard(
+        "Conf Parameters",
+        <div style={{ opacity: 0.75, fontSize: 12 }}>
+          raw params: <code>{rawRows.length}</code>
+        </div>,
+        renderRowsTable(confRows)
+      )}
 
-      {/* All params */}
-      <div
-        style={{
-          border: "1px solid rgba(255,255,255,0.15)",
-          borderRadius: 8,
-          padding: 12,
-          background: "rgba(0,0,0,0.18)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
-          <h3 style={{ margin: 0 }}>All params</h3>
-          <input
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="filter (key or value)"
-            style={{
-              width: 220,
-              padding: "6px 8px",
-              borderRadius: 8,
-              border: "1px solid rgba(255,255,255,0.18)",
-              background: "rgba(0,0,0,0.20)",
-              color: "inherit",
-              fontFamily: "inherit",
-              fontSize: 13,
-            }}
-          />
-        </div>
-
-        {filteredRows.length === 0 ? (
+      {/* Raw params (still available) */}
+      {sectionCard(
+        "All params (raw)",
+        <input
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="filter (key or value)"
+          style={{
+            width: 220,
+            padding: "6px 8px",
+            borderRadius: 8,
+            border: "1px solid rgba(255,255,255,0.18)",
+            background: "rgba(0,0,0,0.20)",
+            color: "inherit",
+            fontFamily: "inherit",
+            fontSize: 13,
+          }}
+        />,
+        filteredRawRows.length === 0 ? (
           <div style={{ opacity: 0.8, marginTop: 8 }}>(no matching params)</div>
         ) : (
           <div
@@ -186,7 +185,7 @@ export default function PadInspector({ pad }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.map((r) => (
+                {filteredRawRows.map((r) => (
                   <tr key={r.key} style={{ verticalAlign: "top" }}>
                     <td
                       style={{
@@ -206,32 +205,26 @@ export default function PadInspector({ pad }: Props) {
                         fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
                       }}
                     >
-                      {renderValue(r.key, r.value)}
+                      {renderRawValue(r.key, r.value)}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        )
+      )}
 
       {/* Slices */}
-      {showSlices && (
-        <div
-          style={{
-            border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 8,
-            padding: 12,
-            background: "rgba(0,0,0,0.18)",
-          }}
-        >
-          <h3 style={{ marginTop: 0 }}>Slices</h3>
-          <div style={{ opacity: 0.8, fontSize: 12, marginBottom: 8 }}>
+      {showSlices &&
+        sectionCard(
+          "Slices",
+          <div style={{ opacity: 0.8, fontSize: 12 }}>
             count: <code>{pad.slices?.length ?? 0}</code>
-          </div>
+          </div>,
           <div
             style={{
+              marginTop: 10,
               maxHeight: 160,
               overflow: "auto",
               borderRadius: 8,
@@ -244,25 +237,16 @@ export default function PadInspector({ pad }: Props) {
           >
             {(pad.slices ?? []).join(", ")}
           </div>
-        </div>
-      )}
+        )}
 
       {/* Multisample mapping */}
-      {showAssets && (
-        <div
-          style={{
-            border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 8,
-            padding: 12,
-            background: "rgba(0,0,0,0.18)",
-          }}
-        >
-          <h3 style={{ marginTop: 0 }}>Multisample mapping</h3>
-          <div style={{ opacity: 0.8, fontSize: 12, marginBottom: 8 }}>
+      {showAssets &&
+        sectionCard(
+          "Multisample mapping",
+          <div style={{ opacity: 0.8, fontSize: 12 }}>
             assets: <code>{pad.assets.length}</code>
-          </div>
-
-          <div style={{ maxHeight: 260, overflow: "auto", borderRadius: 8, border: "1px solid rgba(255,255,255,0.10)" }}>
+          </div>,
+          <div style={{ marginTop: 10, maxHeight: 260, overflow: "auto", borderRadius: 8, border: "1px solid rgba(255,255,255,0.10)" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ textAlign: "left", opacity: 0.85 }}>
@@ -301,8 +285,7 @@ export default function PadInspector({ pad }: Props) {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 }
