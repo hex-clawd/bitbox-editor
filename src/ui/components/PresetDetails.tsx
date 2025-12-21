@@ -5,6 +5,9 @@ type Props = {
     preset: BitboxPreset;
     selectedPadKey: string | null;
     onSelectPad: (padKey: string) => void;
+
+    // NEW: create pad action (UI triggers; caller decides how to mutate state)
+    onCreatePad: (row: number, column: number) => void;
 };
 
 function padKeyFromRC(row: number, column: number): string {
@@ -20,18 +23,30 @@ function shortNameFromPath(p: string): string {
     return parts[parts.length - 1] ?? p;
 }
 
-function cellTitle(p: Pad): string {
-    const base = `R${p.grid.row} C${p.grid.column}`;
+function cellTitle(row: number, col: number, p?: Pad): string {
+    const base = `R${row} C${col}`;
+    if (!p) return `${base} — (empty)`;
     if (!p.filename) return `${base} — (no filename)`;
     return `${base} — ${p.filename}`;
 }
 
-export default function PresetDetails({ preset, selectedPadKey, onSelectPad }: Props) {
+export default function PresetDetails({ preset, selectedPadKey, onSelectPad, onCreatePad }: Props) {
     const padMap = useMemo(() => {
         const m = new Map<string, Pad>();
         for (const p of preset.pads) m.set(padKey(p), p);
         return m;
     }, [preset.pads]);
+
+    // Blackbox grid is 4x4, row 0 col 0 is bottom-left
+    const GRID_ROWS = 4;
+    const GRID_COLS = 4;
+
+    const selectedRC = useMemo(() => {
+        if (!selectedPadKey) return null;
+        const m = selectedPadKey.match(/^r(\d+)c(\d+)$/);
+        if (!m) return null;
+        return { row: Number(m[1]), col: Number(m[2]) };
+    }, [selectedPadKey]);
 
     const selectedPad: Pad | null = useMemo(() => {
         if (!selectedPadKey) return null;
@@ -44,12 +59,6 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad }: P
         const primary = selectedPad.filename ? [selectedPad.filename] : [];
         return { primary, assets };
     }, [selectedPad]);
-
-    // Blackbox grid is 4x4. Your parser uses row/col from XML.
-    // UI requirement: row 0 / col 0 should be bottom-left.
-    // So we render rows visually from top (row=3) to bottom (row=0).
-    const GRID_ROWS = 4;
-    const GRID_COLS = 4;
 
     return (
         <div style={{ display: "grid", gridTemplateColumns: "420px 1fr", gap: 16, alignItems: "start" }}>
@@ -68,9 +77,8 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad }: P
                         background: "rgba(0,0,0,0.10)",
                     }}
                 >
-                    {Array.from({ length: GRID_ROWS }).map((_, visualRowIndex) => {
-                        // visualRowIndex 0 is top row; should map to row=3
-                        const row = GRID_ROWS - 1 - visualRowIndex;
+                    {Array.from({ length: GRID_ROWS }).flatMap((_, visualRowIndex) => {
+                        const row = GRID_ROWS - 1 - visualRowIndex; // render row 3 on top, row 0 on bottom
 
                         return Array.from({ length: GRID_COLS }).map((__, col) => {
                             const key = padKeyFromRC(row, col);
@@ -83,12 +91,8 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad }: P
                             return (
                                 <button
                                     key={`${row}-${col}`}
-                                    onClick={() => {
-                                        if (!p) return;
-                                        onSelectPad(key);
-                                    }}
-                                    disabled={!p}
-                                    title={p ? cellTitle(p) : `R${row} C${col} — (empty)`}
+                                    onClick={() => onSelectPad(key)} // empty is selectable now
+                                    title={cellTitle(row, col, p)}
                                     style={{
                                         height: 86,
                                         padding: 10,
@@ -97,18 +101,21 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad }: P
                                             ? "2px solid rgba(255,255,255,0.55)"
                                             : "1px solid rgba(255,255,255,0.18)",
                                         background: isEmpty
-                                            ? "rgba(255,255,255,0.03)"
+                                            ? isActive
+                                                ? "rgba(255,255,255,0.08)"
+                                                : "rgba(255,255,255,0.03)"
                                             : isActive
                                                 ? "rgba(255,255,255,0.12)"
                                                 : "rgba(255,255,255,0.06)",
                                         color: "inherit",
-                                        cursor: isEmpty ? "not-allowed" : "pointer",
+                                        cursor: "pointer",
                                         textAlign: "left",
                                         overflow: "hidden",
                                         display: "flex",
                                         flexDirection: "column",
                                         justifyContent: "space-between",
                                         fontFamily: "inherit",
+                                        opacity: isEmpty ? 0.8 : 1,
                                     }}
                                 >
                                     <div
@@ -116,14 +123,14 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad }: P
                                             display: "flex",
                                             justifyContent: "space-between",
                                             gap: 8,
-                                            opacity: isEmpty ? 0.45 : 0.9,
+                                            opacity: 0.9,
                                             fontSize: 12,
                                             fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
                                         }}
                                     >
                                         <span>{`R${row}C${col}`}</span>
                                         <span style={{ opacity: 0.75 }}>
-                      {p ? (p.sampleKind ?? "unknown") : ""}
+                      {p ? (p.sampleKind ?? "unknown") : "empty"}
                     </span>
                                     </div>
 
@@ -131,13 +138,13 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad }: P
                                         style={{
                                             marginTop: 6,
                                             fontSize: 12,
-                                            opacity: isEmpty ? 0.35 : 0.95,
+                                            opacity: 0.95,
                                             lineHeight: 1.2,
                                             wordBreak: "break-word",
                                             fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
                                         }}
                                     >
-                                        {p ? (displayText || "(no filename)") : ""}
+                                        {p ? (displayText || "(no filename)") : "(empty)"}
                                     </div>
 
                                     <div
@@ -146,7 +153,7 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad }: P
                                             justifyContent: "space-between",
                                             marginTop: 8,
                                             fontSize: 12,
-                                            opacity: isEmpty ? 0.35 : 0.85,
+                                            opacity: 0.85,
                                         }}
                                     >
                                         <span>{p ? `assets: ${p.assets?.length ?? 0}` : ""}</span>
@@ -167,9 +174,32 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad }: P
             <div>
                 <h2 style={{ marginTop: 0 }}>Pad details</h2>
 
-                {!selectedPad ? (
+                {!selectedPadKey || !selectedRC ? (
                     <p style={{ opacity: 0.8 }}>Click a pad in the grid.</p>
+                ) : !selectedPad ? (
+                    // EMPTY PAD SELECTED
+                    <div
+                        style={{
+                            border: "1px solid rgba(255,255,255,0.15)",
+                            borderRadius: 8,
+                            padding: 12,
+                            background: "rgba(0,0,0,0.18)",
+                        }}
+                    >
+                        <div style={{ fontWeight: 700, marginBottom: 8 }}>
+                            Empty pad: <code>{selectedPadKey}</code>
+                        </div>
+
+                        <div style={{ opacity: 0.85, marginBottom: 12 }}>
+                            This grid cell has no pad data in the preset yet.
+                        </div>
+
+                        <button onClick={() => onCreatePad(selectedRC.row, selectedRC.col)}>
+                            Create pad here
+                        </button>
+                    </div>
                 ) : (
+                    // EXISTING PAD
                     <>
                         {/* Summary */}
                         <div
@@ -182,7 +212,7 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad }: P
                         >
                             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}>
                                 <div style={{ fontWeight: 700 }}>
-                                    {padKey(selectedPad)} ({selectedPad.type})
+                                    {selectedPadKey} ({selectedPad.type})
                                 </div>
                                 <div style={{ opacity: 0.85 }}>
                                     kind: <code>{selectedPad.sampleKind ?? "unknown"}</code>
@@ -217,6 +247,7 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad }: P
                             <div style={{ opacity: 0.85, marginBottom: 6 }}>
                                 Primary ref (pad filename): <code>{samplesList.primary.length}</code>
                             </div>
+
                             {samplesList.primary.length === 0 ? (
                                 <div style={{ opacity: 0.8 }}>(none)</div>
                             ) : (

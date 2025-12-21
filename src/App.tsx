@@ -1,8 +1,10 @@
 import "./App.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePresetBrowser } from "./ui/hooks/usePresetBrowser";
 import PresetFileList from "./ui/components/PresetFileList";
 import PresetDetails from "./ui/components/PresetDetails";
+import type { BitboxPreset } from "./core/domain/bitboxPreset";
+import { ensurePadAt } from "./core/domain/presetEdit";
 
 export default function App() {
     const {
@@ -17,8 +19,16 @@ export default function App() {
         openPresetFile,
     } = usePresetBrowser();
 
-    // UI-only state: which pad is selected in the details view
     const [selectedPadKey, setSelectedPadKey] = useState<string | null>(null);
+
+    // Editable working copy (in-memory only for now)
+    const [editablePreset, setEditablePreset] = useState<BitboxPreset | null>(null);
+
+    // When a new preset is parsed, reset editable copy + selection
+    useEffect(() => {
+        setSelectedPadKey(null);
+        setEditablePreset(selectedPreset ? structuredClone(selectedPreset) : null);
+    }, [selectedPreset]);
 
     return (
         <div className="container" style={{ maxWidth: 1200 }}>
@@ -57,7 +67,8 @@ export default function App() {
                         selectedPath={selectedFile?.path ?? null}
                         isBusy={isBusy}
                         onOpenFile={async (f) => {
-                            setSelectedPadKey(null); // reset pad selection when opening a new preset
+                            setSelectedPadKey(null);
+                            setEditablePreset(null);
                             await openPresetFile(f);
                         }}
                     />
@@ -94,18 +105,18 @@ export default function App() {
                                 }}
                             />
 
-                            {/* Parsed model → Pad list + details */}
+                            {/* Parsed model → Grid + Details */}
                             <h2 style={{ marginTop: 16 }}>Parsed pads</h2>
 
-                            {!selectedPreset ? (
+                            {!editablePreset ? (
                                 <p style={{ opacity: 0.8 }}>No parsed preset.</p>
                             ) : (
                                 <>
-                                    {selectedPreset.warnings.length > 0 && (
+                                    {editablePreset.warnings.length > 0 && (
                                         <div style={{ marginBottom: 12, opacity: 0.9 }}>
                                             <strong>Warnings:</strong>
                                             <ul style={{ marginTop: 6 }}>
-                                                {selectedPreset.warnings.map((w, i) => (
+                                                {editablePreset.warnings.map((w, i) => (
                                                     <li key={i} style={{ opacity: 0.85 }}>
                                                         {w}
                                                     </li>
@@ -115,9 +126,13 @@ export default function App() {
                                     )}
 
                                     <PresetDetails
-                                        preset={selectedPreset}
+                                        preset={editablePreset}
                                         selectedPadKey={selectedPadKey}
                                         onSelectPad={setSelectedPadKey}
+                                        onCreatePad={(row, column) => {
+                                            setEditablePreset((prev) => (prev ? ensurePadAt(prev, row, column, { gridCols: 4 }) : prev));
+                                            setSelectedPadKey(`r${row}c${column}`);
+                                        }}
                                     />
                                 </>
                             )}
