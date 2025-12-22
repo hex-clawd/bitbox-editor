@@ -67,9 +67,20 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad, onC
     }, [padMap, selectedPadKey]);
 
     return (
-        <div style={{ display: "grid", gridTemplateColumns: "420px 1fr", gap: 16, alignItems: "start" }}>
+        <div
+            style={{
+                display: "grid",
+                // Shrink-safe 2-column layout:
+                // - left can shrink below 420 when needed
+                // - right is allowed to shrink (minWidth: 0 behavior)
+                gridTemplateColumns: "minmax(260px, 420px) minmax(0, 1fr)",
+                gap: 16,
+                alignItems: "start",
+                width: "100%",
+            }}
+        >
             {/* Left: 4x4 grid */}
-            <div>
+            <div style={{ minWidth: 0 }}>
                 <h2 style={{ marginTop: 0 }}>Pads (4×4)</h2>
 
                 <div
@@ -126,6 +137,7 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad, onC
                                         justifyContent: "space-between",
                                         fontFamily: "inherit",
                                         opacity: isEmpty ? 0.85 : 1,
+                                        minWidth: 0,
                                     }}
                                 >
                                     <div
@@ -136,10 +148,11 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad, onC
                                             opacity: 0.9,
                                             fontSize: 12,
                                             fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                                            minWidth: 0,
                                         }}
                                     >
                                         <span>{`R${row}C${col}`}</span>
-                                        <span style={{ opacity: 0.75 }}>{modeText}</span>
+                                        <span style={{ opacity: 0.75, whiteSpace: "nowrap" }}>{modeText}</span>
                                     </div>
 
                                     <div
@@ -186,7 +199,7 @@ export default function PresetDetails({ preset, selectedPadKey, onSelectPad, onC
             </div>
 
             {/* Right: inspector */}
-            <div>
+            <div style={{ minWidth: 0 }}>
                 <h2 style={{ marginTop: 0 }}>Inspector</h2>
 
                 {!selectedPadKey || !selectedRC ? (

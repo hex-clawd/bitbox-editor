@@ -44,7 +44,7 @@ export default function App() {
   }, [error, editablePreset]);
 
   return (
-    <div className="container" style={{ maxWidth: 1200, marginInline: "auto" }}>
+    <div className="container">
       <TopToolbar
         onPickFolder={chooseFolder}
         isBusy={isBusy}
