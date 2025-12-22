@@ -1,8 +1,8 @@
 import type { AssetRef, BitboxPreset, Pad, PadMode, SampleRef } from "../domain/bitboxPreset";
 
 export type ParseResult =
-  | { ok: true; preset: BitboxPreset }
-  | { ok: false; error: string; preset?: BitboxPreset };
+    | { ok: true; preset: BitboxPreset }
+    | { ok: false; error: string; preset?: BitboxPreset };
 
 const PRESET_NAME_ATTR_CANDIDATES = ["name", "presetName", "title"];
 
@@ -27,20 +27,7 @@ export function parseBitboxPresetXml(inputXml: string): ParseResult {
 
   const parserError = doc.getElementsByTagName("parsererror")[0];
   if (parserError) {
-    // Best-effort salvage: strip trailing junk after last '>'
-    const salvaged = salvageTrailingJunk(xml);
-    if (salvaged.xml !== xml) {
-      const doc2 = new DOMParser().parseFromString(salvaged.xml, "application/xml");
-      const parserError2 = doc2.getElementsByTagName("parsererror")[0];
-      if (!parserError2) {
-        doc = doc2;
-        warnings.push(...salvaged.warnings);
-      } else {
-        return { ok: false, error: `Invalid XML (after salvage): ${parserError2.textContent ?? "parsererror"}` };
-      }
-    } else {
-      return { ok: false, error: `Invalid XML: ${parserError.textContent ?? "parsererror"}` };
-    }
+    return { ok: false, error: `Invalid XML: ${parserError.textContent ?? "parsererror"}` };
   }
 
   const name = detectPresetName(doc, warnings);
@@ -52,7 +39,7 @@ export function parseBitboxPresetXml(inputXml: string): ParseResult {
 
   // Collect DIRECT children <cell> of session
   const sessionCells = Array.from(sessionEl.children).filter(
-    (el) => el.tagName === "cell" || el.tagName === "Cell"
+      (el) => el.tagName === "cell" || el.tagName === "Cell"
   ) as Element[];
 
   // Partition cells by type
@@ -129,13 +116,20 @@ function findDocumentSession(doc: Document): Element | null {
 function parsePadsFromSessionCells(cells: Element[], warnings: string[]): Pad[] {
   // Infer grid width by max column in candidate pad cells
   const cols = cells
-    .map((c) => parseIntSafe(c.getAttribute("column")))
-    .filter((n): n is number => n !== undefined);
+      .map((c) => parseIntSafe(c.getAttribute("column")))
+      .filter((n): n is number => n !== undefined);
   const maxCol = cols.length ? Math.max(...cols) : 0;
   const gridWidth = Math.max(1, maxCol + 1);
 
   // Group and MERGE pads by (row,col)
   const padMap = new Map<string, Pad>();
+
+  const clampInt = (value: number | undefined, min: number, max: number, fallback: number) => {
+    if (value == null || Number.isNaN(value)) return fallback;
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+  };
 
   for (const cell of cells) {
     const row = parseIntSafe(cell.getAttribute("row"));
@@ -143,7 +137,7 @@ function parsePadsFromSessionCells(cells: Element[], warnings: string[]): Pad[] 
     if (row == null || column == null) continue;
 
     const type = (cell.getAttribute("type") ?? "").toLowerCase();
-    // current focus is sample pads (we can expand later)
+    // current focus is sample pads
     if (type && type !== "sample") continue;
 
     const key = `${row},${column}`;
@@ -154,8 +148,11 @@ function parsePadsFromSessionCells(cells: Element[], warnings: string[]): Pad[] 
     const paramsEl = firstChildByTag(cell, "params");
     const params = paramsEl ? attributesToRecord(paramsEl) : {};
 
-    const slices = extractSlices(cell);
+    // MIDI fields
+    const midiIn = clampInt(parseIntSafe(params["midimode"]), 0, 16, 0);
+    const padNote = clampInt(parseIntSafe(params["padnote"]), 0, 127, 0);
 
+    const slices = extractSlices(cell);
     const padMode = derivePadMode(params, slices);
 
     const existing = padMap.get(key);
@@ -167,6 +164,8 @@ function parsePadsFromSessionCells(cells: Element[], warnings: string[]): Pad[] 
         padMode,
         filename,
         params,
+        midiIn,
+        padNote,
         slices: slices.length ? slices : undefined,
         assets: [],
         meta: undefined,
@@ -174,24 +173,27 @@ function parsePadsFromSessionCells(cells: Element[], warnings: string[]): Pad[] 
     } else {
       if (!existing.filename && filename) existing.filename = filename;
 
-      // params: fill missing keys (first wins is safest)
+      const hadMidiMode = existing.params["midimode"] != null;
+      const hadPadNote = existing.params["padnote"] != null;
+
+      // params: fill missing keys (first wins)
       for (const [k, v] of Object.entries(params)) {
         if (existing.params[k] == null) existing.params[k] = v;
       }
 
-      // padMode: upgrade unknown -> known; keep existing otherwise
+      if (!hadMidiMode && params["midimode"] != null) existing.midiIn = midiIn;
+      if (!hadPadNote && params["padnote"] != null) existing.padNote = padNote;
+
       if (existing.padMode === "unknown" && padMode !== "unknown") {
         existing.padMode = padMode;
       }
 
-      // slices: prefer non-empty; if both non-empty prefer longer list
       if ((!existing.slices || existing.slices.length === 0) && slices.length > 0) {
         existing.slices = slices;
-      } else if (existing.slices && slices.length > (existing.slices?.length ?? 0)) {
+      } else if (existing.slices && slices.length > existing.slices.length) {
         existing.slices = slices;
       }
 
-      // meta: merge other cell attributes (excluding structural ones)
       const meta: Record<string, string> = { ...(existing.meta ?? {}) };
       for (const a of Array.from(cell.attributes)) {
         if (a.name === "row" || a.name === "column" || a.name === "layer" || a.name === "filename" || a.name === "type")
@@ -204,7 +206,6 @@ function parsePadsFromSessionCells(cells: Element[], warnings: string[]): Pad[] 
 
   const pads = Array.from(padMap.values());
 
-  // Filter: keep only pads that are “filled in” in a Blackbox sense.
   const filtered = pads.filter((p) => {
     const hasFilename = !!p.filename && p.filename.trim().length > 0;
     const isMultisample = p.params["multisammode"] === "1";
@@ -220,20 +221,13 @@ function parsePadsFromSessionCells(cells: Element[], warnings: string[]): Pad[] 
 }
 
 function derivePadMode(params: Record<string, string>, slices: number[]): PadMode {
-  // Best-effort logic based on real-world observations + your snippet:
-  // - multisample is explicit: multisammode="1"
-  // - slicer: slices present OR cellmode="2" (your slice pad example shows cellmode="2")
-  // - granular: often a different cellmode (placeholder here as "3" until we confirm)
   const cellmode = params["cellmode"];
   const multisammode = params["multisammode"];
 
   if (multisammode === "1") return "multisample";
-
   if ((slices?.length ?? 0) > 0) return "slicer";
   if (cellmode === "2") return "slicer";
-
   if (cellmode === "3") return "granular";
-
   return "sample";
 }
 
@@ -318,87 +312,60 @@ function linkAssetsToPads(pads: Pad[], assets: AssetRef[], warnings: string[]): 
 }
 
 // -------------------------
-// Name detection
+// Utilities (from original file)
 // -------------------------
 
+function stripNulBytes(input: string): string {
+  // Blackbox exports sometimes contain trailing NUL bytes
+  return input.replace(/\u0000+$/g, "");
+}
+
 function detectPresetName(doc: Document, warnings: string[]): string | undefined {
-  const root = doc.documentElement;
-  if (root) {
-    for (const attr of PRESET_NAME_ATTR_CANDIDATES) {
-      const v = root.getAttribute(attr);
-      if (v && v.trim()) return v.trim();
-    }
+  for (const attr of PRESET_NAME_ATTR_CANDIDATES) {
+    const el = doc.documentElement;
+    const v = el?.getAttribute?.(attr);
+    if (v && v.trim()) return v.trim();
   }
-
-  const nameTags = [...Array.from(doc.getElementsByTagName("name")), ...Array.from(doc.getElementsByTagName("Name"))];
-  const nameText = nameTags[0]?.textContent?.trim();
-  if (nameText) return nameText;
-
-  warnings.push("Preset name not found in XML (will likely use filename).");
+  warnings.push("Preset name not found in XML attributes.");
   return undefined;
 }
 
-// -------------------------
-// Helpers
-// -------------------------
-
-function stripNulBytes(s: string): string {
-  return s.replace(/\u0000/g, "");
-}
-
-function salvageTrailingJunk(input: string): { xml: string; warnings: string[] } {
-  const warnings: string[] = [];
-  const s = stripNulBytes(input).trim();
-  const lastGt = s.lastIndexOf(">");
-  if (lastGt >= 0 && lastGt < s.length - 1) {
-    warnings.push(`Stripped ${s.length - (lastGt + 1)} trailing characters after last '>'.`);
-    return { xml: s.slice(0, lastGt + 1), warnings };
-  }
-  return { xml: s, warnings };
-}
-
-function parseIntSafe(v: string | null | undefined): number | undefined {
-  if (v == null) return undefined;
-  const n = Number.parseInt(v, 10);
-  return Number.isFinite(n) ? n : undefined;
-}
-
 function hasAttr(el: Element, name: string): boolean {
-  const v = el.getAttribute(name);
-  return v != null && v !== "";
+  return el.hasAttribute(name);
 }
 
 function firstChildByTag(parent: Element, tag: string): Element | null {
-  for (const c of Array.from(parent.children)) {
-    if (c.tagName === tag || c.tagName === tag[0].toUpperCase() + tag.slice(1)) return c as Element;
-  }
-  return null;
+  return Array.from(parent.children).find(
+      (c) => c.tagName === tag || c.tagName === tag.toUpperCase()
+  ) as Element | null;
 }
 
 function attributesToRecord(el: Element): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const a of Array.from(el.attributes)) out[a.name] = a.value;
+  for (const a of Array.from(el.attributes)) {
+    out[a.name] = a.value;
+  }
   return out;
 }
 
+function parseIntSafe(v: string | null | undefined): number | undefined {
+  if (v == null) return undefined;
+  const n = parseInt(v, 10);
+  return Number.isNaN(n) ? undefined : n;
+}
+
 function classifyRefKind(path: string): "sample" | "folder" | "unknown" {
-  const v = path.trim();
-  if (!v) return "unknown";
-  const lower = v.toLowerCase();
-  const extMatch = lower.match(/\.([a-z0-9]{1,8})$/);
-  if (extMatch) return "sample";
-  if (v.includes("\\") || v.includes("/")) return "folder";
+  if (path.includes(".wav") || path.includes(".aif") || path.includes(".aiff")) return "sample";
+  if (path.endsWith("/") || path.includes("\\")) return "folder";
   return "unknown";
 }
 
 function dedupeSampleRefs(refs: SampleRef[]): SampleRef[] {
   const seen = new Set<string>();
-  const out: SampleRef[] = [];
-  for (const r of refs) {
-    const key = `${r.role}||${r.path}||${r.padIndex ?? ""}||${r.xmlHint ?? ""}`;
-    if (seen.has(key)) continue;
+  return refs.filter((r) => {
+    const key = `${r.role}:${r.path}:${r.padIndex ?? ""}`;
+    if (seen.has(key)) return false;
     seen.add(key);
-    out.push(r);
-  }
-  return out;
+    return true;
+  });
 }

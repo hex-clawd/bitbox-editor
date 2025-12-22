@@ -5,6 +5,11 @@ export type DisplayRow = {
   rawValue?: string;
 };
 
+function clampInt(n: number, min: number, max: number): number {
+  if (!Number.isFinite(n)) return min;
+  return Math.min(max, Math.max(min, Math.trunc(n)));
+}
+
 function get(params: Record<string, string>, key: string): string | undefined {
   const v = params[key];
   if (v == null) return undefined;
@@ -82,11 +87,28 @@ function exclGroupFromChoke(v: string | undefined): string | undefined {
   return `Excl (${v})`;
 }
 
+function midiInLabelFromMidimode(v: string | undefined): string | undefined {
+  if (v == null) return undefined;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return v;
+  const ch = clampInt(n, 0, 16);
+  return ch === 0 ? "None" : `Ch${ch}`;
+}
+
+function padNoteLabelFromPadnote(v: string | undefined): string | undefined {
+  if (v == null) return undefined;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return v;
+  const nn = clampInt(n, 0, 127);
+  // 0 is C-1, and Blackbox UI may call it “Default”.
+  return nn === 0 ? "0 (C-1 / Default)" : `${nn}`;
+}
+
 function maybeRow(
-  label: string,
-  params: Record<string, string>,
-  rawKey: string,
-  displayValue: string | undefined
+    label: string,
+    params: Record<string, string>,
+    rawKey: string,
+    displayValue: string | undefined
 ): DisplayRow | null {
   if (displayValue == null) return null;
   return {
@@ -126,6 +148,10 @@ export function buildBlackboxConfRows(params: Record<string, string>): DisplayRo
     maybeRow("Pan", params, "panpos", fmtPctSignedFromTenth(num(params, "panpos"))),
     maybeRow("Poly Mode", params, "polymode", polyModeFromValue(get(params, "polymode"))),
     maybeRow("Excl Group", params, "chokegrp", exclGroupFromChoke(get(params, "chokegrp"))),
+
+    // MIDI input/channel selection and pad note live in params, not in the inspector summary.
+    maybeRow("MIDI In", params, "midimode", midiInLabelFromMidimode(get(params, "midimode"))),
+    maybeRow("Pad Note", params, "padnote", padNoteLabelFromPadnote(get(params, "padnote"))),
   ];
 
   return rows.filter((r): r is DisplayRow => r != null);

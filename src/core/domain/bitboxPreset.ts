@@ -32,6 +32,20 @@ export type Pad = {
   /** Parsed params from the pad cell (<params .../>) */
   params: Record<string, string>;
 
+  /**
+   * Blackbox UI: "MIDI In"
+   * Stored in preset.xml as params@midimode.
+   * 0 = None, 1..16 = Ch1..Ch16
+   */
+  midiIn: number;
+
+  /**
+   * Blackbox UI: "Pad Note"
+   * Stored in preset.xml as params@padnote.
+   * 0..127 where 0 = C-1 (and also shown as Default in the UI)
+   */
+  padNote: number;
+
   /** If the pad has explicit slices */
   slices?: number[]; // slice positions
 
