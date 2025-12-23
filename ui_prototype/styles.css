@@ -150,10 +150,9 @@ body{
   font-size:12px;
 }
 
-/* Config key/value grid */
 .kv-grid{
   display:grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns:1fr 1fr;
   gap:10px;
 }
 
@@ -168,13 +167,11 @@ body{
 .k{
   color:var(--muted);
   font-size:11px;
-  white-space:nowrap;
 }
 
 .v{
   color:var(--text);
   font-size:12px;
-  white-space:nowrap;
 }
 
 .placeholder{
