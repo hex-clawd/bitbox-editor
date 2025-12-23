@@ -7,17 +7,18 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div class="app" role="application" aria-label="App skeleton">
-    <header class="toolbar" aria-label="Top toolbar">
-      <div class="placeholder">Toolbar (1000×50)</div>
+  <div class="app">
+    <header class="toolbar">
+      <div class="placeholder">Toolbar (1400×70)</div>
     </header>
 
     <main class="content">
-      <section class="pad-main" aria-label="Main pad section">
-        <div class="placeholder">Main Pad Section / Waveform (1000×250)</div>
+      <section class="pad-main">
+        <div class="placeholder">Main Pad Section / Waveform (1400×350)</div>
       </section>
 
-      <section class="pad-details" aria-label="Pads and details">
+      <section class="pad-details" aria-label="Pads & details">
+        <!-- Pads column -->
         <div class="pads" aria-label="Pads grid (4×4)">
           <div class="pad">1</div><div class="pad">2</div><div class="pad">3</div><div class="pad">4</div>
           <div class="pad">5</div><div class="pad">6</div><div class="pad">7</div><div class="pad">8</div>
@@ -25,12 +26,43 @@
           <div class="pad">13</div><div class="pad">14</div><div class="pad">15</div><div class="pad">16</div>
         </div>
 
+        <!-- Middle column -->
         <div class="panel" aria-label="Details panel A">
           <div class="placeholder">Details Panel A</div>
         </div>
 
+        <!-- Right column -->
         <div class="panel" aria-label="Details panel B">
-          <div class="placeholder">Details Panel B</div>
+          <section class="envelope" aria-label="Envelope">
+            <div class="env-title">Envelope (ADSR)</div>
+
+            <div class="env-graph" aria-label="Envelope graph">
+              <!-- super simple straight-line ADSR -->
+              <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
+                <polyline points="0,38 18,6 38,22 62,22 92,38"
+                          fill="none" stroke="currentColor" stroke-width="1.5" />
+              </svg>
+            </div>
+
+            <div class="env-knobs" aria-label="ADSR knobs">
+              <div class="knob">
+                <div class="knob-ring"></div>
+                <div class="knob-label">Attack</div>
+              </div>
+              <div class="knob">
+                <div class="knob-ring"></div>
+                <div class="knob-label">Decay</div>
+              </div>
+              <div class="knob">
+                <div class="knob-ring"></div>
+                <div class="knob-label">Sustain</div>
+              </div>
+              <div class="knob">
+                <div class="knob-ring"></div>
+                <div class="knob-label">Release</div>
+              </div>
+            </div>
+          </section>
         </div>
       </section>
     </main>
