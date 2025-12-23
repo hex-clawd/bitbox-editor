@@ -8,6 +8,13 @@
   --line:#232735;
   --text:#e7e9ef;
   --muted:#9aa3b2;
+
+  /* waveform marker positions (percent) */
+  --sample-start: 8%;
+  --sample-end: 92%;
+  --loop-start: 22%;
+  --loop-end: 58%;
+  --playhead: 35%;
 }
 
 *{box-sizing:border-box}
@@ -38,9 +45,124 @@ body{
 .pad-main{
   height:var(--padmain-h);
   border-bottom:1px solid var(--line);
-  padding:18px;
+  padding:14px;
 }
 
+.wf{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  height:100%;
+}
+
+/* shared waveform row */
+.wf-row{
+  position:relative;
+  background:var(--surface);
+  border:1px solid var(--line);
+  overflow:hidden;
+}
+
+.wf-overview{ height:70px; }
+.wf-detail{ flex:1; min-height: 140px; }
+
+.wf-row svg{
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+.wf-line{
+  fill:none;
+  stroke:var(--text);
+  stroke-width:1;
+  opacity:0.9;
+}
+
+.wf-line-detail{
+  stroke-width:1.1;
+}
+
+/* overlay markers/brackets */
+.wf-overlay{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+
+/* markers */
+.marker{
+  position:absolute;
+  top:0;
+  bottom:0;
+  width:1px;
+  background:var(--text);
+  opacity:0.65;
+}
+
+.marker-sample-start{ left: var(--sample-start); }
+.marker-sample-end{ left: var(--sample-end); }
+
+.marker-loop-start{
+  left: var(--loop-start);
+  opacity:0.85;
+}
+
+.marker-loop-end{
+  left: var(--loop-end);
+  opacity:0.85;
+}
+
+.playhead{
+  position:absolute;
+  top:0;
+  bottom:0;
+  left: var(--playhead);
+  width:1px;
+  background:var(--text);
+  opacity:0.95;
+}
+
+/* brackets (simple line + end caps) */
+.bracket{
+  position:absolute;
+  top:8px;
+  height:10px;
+  border-top:1px solid var(--text);
+  opacity:0.6;
+}
+
+.wf-detail .bracket{
+  top:auto;
+  bottom:10px;
+  height:14px;
+}
+
+.bracket::before,
+.bracket::after{
+  content:"";
+  position:absolute;
+  top:-1px;
+  width:0;
+  height:12px;
+  border-left:1px solid var(--text);
+}
+
+.bracket::before{ left:0; }
+.bracket::after{ right:0; }
+
+.bracket-sample{
+  left: var(--sample-start);
+  right: calc(100% - var(--sample-end));
+}
+
+.bracket-loop{
+  left: var(--loop-start);
+  right: calc(100% - var(--loop-end));
+  opacity:0.85;
+}
+
+/* bottom section layout */
 .pad-details{
   display:grid;
   grid-template-columns:480px 1fr 1fr;
@@ -48,21 +170,29 @@ body{
   padding:14px;
 }
 
-/* flatten panels: layout-only wrappers */
-.panel{
-  background:transparent;
-  border:none;
-  padding:0;
-}
+/* flatten panels */
+.panel{ background:transparent; border:none; padding:0; }
 
-/* pads area: SHOULD have surface bg, but NO border */
+/* pads grid (your “correct” rule set) */
 .pads{
   display:grid;
   grid-template-columns:repeat(4,1fr);
   gap:14px;
+  align-content:start;
+  grid-auto-rows: var(--pad-h, 78px);
 }
 
-/* primary surface element (rename later if you want) */
+.pad{
+  background: var(--surface);
+  height: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--muted);
+  box-shadow:inset 0 0 0 1px var(--line);
+}
+
+/* blocks */
 .block{
   background:var(--surface);
   border:1px solid var(--line);
@@ -73,10 +203,7 @@ body{
   margin-bottom:14px;
 }
 
-.block-title{
-  color:var(--muted);
-  font-size:12px;
-}
+.block-title{ color:var(--muted); font-size:12px; }
 
 .block-graph{
   border:1px solid var(--line);
@@ -84,44 +211,24 @@ body{
   padding:6px;
 }
 
-.block-graph svg{
-  width:100%;
-  height:100%;
-}
+.block-graph svg{ width:100%; height:100%; }
 
 .block-knobs{
   display:grid;
   grid-template-columns:repeat(5,1fr);
   gap:10px;
 }
-
 .block-knobs-4{ grid-template-columns:repeat(4,1fr); }
 
-.knob{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:6px;
-}
-
-.knob-ring{
-  width:48px;
-  height:48px;
-  border-radius:999px;
-  box-shadow:inset 0 0 0 1px var(--line);
-}
-
-.knob-label{
-  font-size:11px;
-  color:var(--muted);
-}
+.knob{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+.knob-ring{ width:48px; height:48px; border-radius:999px; box-shadow:inset 0 0 0 1px var(--line); }
+.knob-label{ font-size:11px; color:var(--muted); }
 
 .block-params{
   display:grid;
   grid-template-columns:repeat(5,1fr);
   gap:10px;
 }
-
 .param{
   box-shadow:inset 0 0 0 1px var(--line);
   padding:6px 4px;
@@ -130,7 +237,6 @@ body{
   align-items:center;
   gap:6px;
 }
-
 .param-name{ font-size:11px; color:var(--muted); }
 .param-value{ font-size:12px; }
 
@@ -139,7 +245,6 @@ body{
   grid-template-columns:1fr 1fr;
   gap:10px;
 }
-
 .kv{
   box-shadow:inset 0 0 0 1px var(--line);
   padding:8px 10px;
@@ -147,33 +252,177 @@ body{
   justify-content:space-between;
   gap:10px;
 }
-
 .k{ color:var(--muted); font-size:11px; }
 .v{ color:var(--text); font-size:12px; }
 
-/* pads */
-.pad{
-  background: #10131a;
-  height:78px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:var(--muted);
-  box-shadow:inset 0 0 0 1px var(--line);
-}
-
 .placeholder{ color:var(--muted); }
 
-/* --- FIX: prevent stretched pad cells + make pads fill their grid tracks --- */
-.pad-details{
-  align-items: start;       /* don't stretch the left column to match tallest column */
+/* --- BRACKETS: separate tracks + separate colors --- */
+:root{
+  --bracket-sample: #b44bd6; /* purple-ish */
+  --bracket-loop:   #59d6ff; /* cyan-ish */
 }
 
-.pads{
-  grid-auto-rows: 98px;     /* cell height Y */
-  align-content: start;     /* don't stretch rows vertically */
+/* base bracket uses currentColor so we can color per bracket */
+.bracket{
+  border-top-color: currentColor;
+  color: var(--text);
+}
+.bracket::before,
+.bracket::after{
+  border-left-color: currentColor;
 }
 
-.pad{
-  height: 100%;             /* fill the grid cell */
+/* OVERVIEW ROW: loop higher, sample lower */
+.wf-overview .bracket-loop{
+  top: 8px;
+  color: var(--bracket-loop);
+}
+.wf-overview .bracket-sample{
+  top: 24px; /* lower than loop */
+  color: var(--bracket-sample);
+}
+
+/* DETAIL ROW: same idea, but anchored near bottom */
+.wf-detail .bracket-loop{
+  bottom: 26px;  /* higher */
+  color: var(--bracket-loop);
+}
+.wf-detail .bracket-sample{
+  bottom: 10px;  /* lower */
+  color: var(--bracket-sample);
+}
+
+/* --- Waveform overlay must sit ABOVE the SVG (fix missing overview brackets) --- */
+.wf-row svg{ position:relative; z-index:1; }
+.wf-overlay{ position:absolute; inset:0; z-index:2; pointer-events:none; }
+
+/* --- Bracket colors --- */
+:root{
+  --bracket-sample: #b44bd6; /* purple */
+  --bracket-loop:   #59d6ff; /* cyan */
+}
+
+/* make bracket strokes inherit per-bracket color */
+.bracket{
+  border-top-color: currentColor;
+  opacity: 0.9;
+}
+.bracket::before,
+.bracket::after{
+  border-left-color: currentColor;
+}
+
+/* OVERVIEW: loop higher, sample lower */
+.wf-overview .bracket-loop{ top: 8px;  color: var(--bracket-loop); }
+.wf-overview .bracket-sample{ top: 24px; color: var(--bracket-sample); }
+
+/* DETAIL: loop higher (closer to waveform), sample lower (closer to bottom) */
+.wf-detail .bracket-loop{ bottom: 26px; color: var(--bracket-loop); }
+.wf-detail .bracket-sample{ bottom: 10px; color: var(--bracket-sample); }
+
+/* --- Markers: color-match + stop at the bracket line (not full height) --- */
+.marker{
+  width: 1px;
+  background: currentColor;
+}
+
+/* Sample markers (purple) */
+.marker-sample-start,
+.marker-sample-end{ color: var(--bracket-sample); }
+
+/* Loop markers (cyan) */
+.marker-loop-start,
+.marker-loop-end{ color: var(--bracket-loop); }
+
+/* OVERVIEW markers end at their bracket Y (top positions) */
+.wf-overview .marker-loop-start,
+.wf-overview .marker-loop-end{
+  top: 0;
+  bottom: calc(100% - 8px);   /* stop at loop bracket line */
+}
+
+.wf-overview .marker-sample-start,
+.wf-overview .marker-sample-end{
+  top: 0;
+  bottom: calc(100% - 24px);  /* stop at sample bracket line */
+}
+
+/* DETAIL markers end at their bracket Y (bottom positions) */
+.wf-detail .marker-loop-start,
+.wf-detail .marker-loop-end{
+  top: 0;
+  bottom: 26px;               /* stop at loop bracket line */
+}
+
+.wf-detail .marker-sample-start,
+.wf-detail .marker-sample-end{
+  top: 0;
+  bottom: 10px;               /* stop at sample bracket line */
+}
+
+/* --- FIX: detail markers must stop at the BRACKET LINE (top of bracket box), not its bottom --- */
+/* bracket height in detail is 14px (from your existing .wf-detail .bracket { height: 14px; }) */
+.wf-detail .marker-loop-start,
+.wf-detail .marker-loop-end{
+  bottom: calc(26px + 14px); /* 26px offset + bracket height = bracket line */
+}
+
+.wf-detail .marker-sample-start,
+.wf-detail .marker-sample-end{
+  bottom: calc(10px + 14px); /* 10px offset + bracket height = bracket line */
+}
+
+/* --- OVERVIEW: show ONLY the zoom window, not sample/loop brackets --- */
+:root{
+  --view-start: 18%;
+  --view-end: 62%;
+}
+
+/* hide all markers/brackets in overview */
+.wf-overview .bracket,
+.wf-overview .marker,
+.wf-overview .playhead{
+  display:none;
+}
+
+/* add a single "view window" rectangle */
+.wf-overview .wf-overlay::before{
+  content:"";
+  position:absolute;
+  top:8px;
+  bottom:8px;
+  left: var(--view-start);
+  right: calc(100% - var(--view-end));
+
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.04);
+}
+
+/* --- Replace bracket caps with a clean 3-sided rectangle (no top border) --- */
+.bracket{
+  border-top: none !important;
+  border-left: 1px solid currentColor !important;
+  border-right: 1px solid currentColor !important;
+  border-bottom: 1px solid currentColor !important;
+
+  height: 14px !important;
+  opacity: 0.9;
+}
+
+/* kill the old cap lines so we don't double-draw */
+.bracket::before,
+.bracket::after{
+  content: none !important;
+}
+
+/* now markers can just stop at the rectangle bottom edge (no overlap) */
+.wf-detail .marker-loop-start,
+.wf-detail .marker-loop-end{
+  bottom: 26px !important;   /* rectangle sits with its bottom here */
+}
+
+.wf-detail .marker-sample-start,
+.wf-detail .marker-sample-end{
+  bottom: 10px !important;
 }
