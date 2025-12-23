@@ -103,6 +103,10 @@ body{
   gap:10px;
 }
 
+.block-knobs-4{
+  grid-template-columns:repeat(4,1fr);
+}
+
 .knob{
   display:flex;
   flex-direction:column;
@@ -144,6 +148,33 @@ body{
 
 .param-value{
   font-size:12px;
+}
+
+/* Config key/value grid */
+.kv-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:10px;
+}
+
+.kv{
+  box-shadow:inset 0 0 0 1px var(--line);
+  padding:8px 10px;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.k{
+  color:var(--muted);
+  font-size:11px;
+  white-space:nowrap;
+}
+
+.v{
+  color:var(--text);
+  font-size:12px;
+  white-space:nowrap;
 }
 
 .placeholder{
