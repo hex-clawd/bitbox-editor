@@ -5,6 +5,7 @@ import { usePresetBrowser } from "./ui/hooks/usePresetBrowser";
 import PresetDetails from "./ui/components/PresetDetails";
 import TopToolbar from "./ui/components/TopToolbar";
 import StatusBar, { type StatusMessage } from "./ui/components/StatusBar";
+import XmlPreviewModal from "./ui/components/debug/XmlPreviewModal";
 
 import type { BitboxPreset } from "./core/domain/bitboxPreset";
 import { ensurePadAt } from "./core/domain/presetEdit";
@@ -23,11 +24,9 @@ export default function App() {
   } = usePresetBrowser();
 
   const [selectedPadKey, setSelectedPadKey] = useState<string | null>(null);
-
-  // Editable working copy (in-memory only for now)
   const [editablePreset, setEditablePreset] = useState<BitboxPreset | null>(null);
+  const [isXmlOpen, setIsXmlOpen] = useState(false);
 
-  // When a new preset is parsed, reset editable copy + selection
   useEffect(() => {
     setSelectedPadKey(null);
     setEditablePreset(selectedPreset ? structuredClone(selectedPreset) : null);
@@ -48,7 +47,6 @@ export default function App() {
       <TopToolbar
         onPickFolder={chooseFolder}
         isBusy={isBusy}
-        folderPath={folderPath}
         presets={presetFiles}
         selectedFile={selectedFile}
         onSelectPreset={async (f) => {
@@ -56,53 +54,37 @@ export default function App() {
           setEditablePreset(null);
           await openPresetFile(f);
         }}
+        onShowXml={() => setIsXmlOpen(true)}
+        canShowXml={!!selectedText}
       />
 
       <div className="bb-main">
         {!selectedFile ? (
           <p style={{ opacity: 0.8 }}>Select a preset (use the dropdown in the toolbar).</p>
+        ) : !editablePreset ? (
+          <p style={{ opacity: 0.8 }}>No parsed preset.</p>
         ) : (
-          <>
-            <div style={{ opacity: 0.8, fontSize: 13, marginBottom: 8 }}>
-              <strong>File:</strong> <code>{selectedFile.name}</code>
-            </div>
-
-            {/* Raw XML */}
-            <textarea
-              readOnly
-              value={selectedText}
-              style={{
-                width: "100%",
-                minHeight: 240,
-                resize: "vertical",
-                fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-                fontSize: 13,
-                lineHeight: 1.35,
-                padding: 12,
-              }}
-            />
-
-            {/* Parsed model → Grid + Details */}
-            <h2 style={{ marginTop: 16 }}>Parsed pads</h2>
-
-            {!editablePreset ? (
-              <p style={{ opacity: 0.8 }}>No parsed preset.</p>
-            ) : (
-              <PresetDetails
-                preset={editablePreset}
-                selectedPadKey={selectedPadKey}
-                onSelectPad={setSelectedPadKey}
-                onCreatePad={(row, column) => {
-                  setEditablePreset((prev) => (prev ? ensurePadAt(prev, row, column, { gridCols: 4 }) : prev));
-                  setSelectedPadKey(`r${row}c${column}`);
-                }}
-              />
-            )}
-          </>
+          <PresetDetails
+            preset={editablePreset}
+            selectedPadKey={selectedPadKey}
+            onSelectPad={setSelectedPadKey}
+            onCreatePad={(row, column) => {
+              setEditablePreset((prev) =>
+                prev ? ensurePadAt(prev, row, column, { gridCols: 4 }) : prev
+              );
+              setSelectedPadKey(`r${row}c${column}`);
+            }}
+          />
         )}
       </div>
 
       <StatusBar messages={statusMessages} />
+
+      <XmlPreviewModal
+        xmlText={selectedText}
+        isOpen={isXmlOpen}
+        onClose={() => setIsXmlOpen(false)}
+      />
     </div>
   );
 }

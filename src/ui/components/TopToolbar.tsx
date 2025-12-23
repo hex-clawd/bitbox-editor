@@ -8,6 +8,9 @@ type Props = {
   presets: ListedFile[];
   selectedFile: ListedFile | null;
   onSelectPreset: (file: ListedFile) => void;
+
+  onShowXml: () => void;
+  canShowXml: boolean;
 };
 
 function FolderIcon() {
@@ -23,7 +26,15 @@ function FolderIcon() {
   );
 }
 
-export default function TopToolbar({ onPickFolder, isBusy, presets, selectedFile, onSelectPreset }: Props) {
+export default function TopToolbar({
+  onPickFolder,
+  isBusy,
+  presets,
+  selectedFile,
+  onSelectPreset,
+  onShowXml,
+  canShowXml,
+}: Props) {
   const selectedKey = selectedFile ? selectedFile.path : "";
 
   return (
@@ -59,6 +70,16 @@ export default function TopToolbar({ onPickFolder, isBusy, presets, selectedFile
       </select>
 
       <div className="bb-toolbarSpacer" />
+
+      {canShowXml ? (
+        <button
+          className="bb-iconButton"
+          onClick={onShowXml}
+          title="Show preset XML"
+        >
+          XML…
+        </button>
+      ) : null}
 
       {isBusy ? <span className="bb-pill">Working…</span> : null}
     </div>
