@@ -1,51 +1,35 @@
-import React, { useState } from "react";
+import React from "react";
 import type { Pad } from "../../core/domain/bitboxPreset";
 import PadInspectorHeader from "./padInspector/PadInspectorHeader";
 import PadMainParamsSection from "./padInspector/PadMainParamsSection";
+import PadEnvSection from "./padInspector/PadEnvSection";
+import PadLfoSection from "./padInspector/PadLfoSection";
+import PadPosSection from "./padInspector/PadPosSection";
 import PadConfParamsSection from "./padInspector/PadConfParamsSection";
+import PadGranSection from "./padInspector/PadGranSection";
 import PadSlicesSection from "./padInspector/PadSlicesSection";
 import PadMultisampleMappingSection from "./padInspector/PadMultisampleMappingSection";
-import PadRawParamsModal from "./padInspector/PadRawParamsModal";
 
 type Props = {
-    pad: Pad;
+  pad: Pad;
 };
 
 export default function PadInspector({ pad }: Props) {
-    const [isRawOpen, setIsRawOpen] = useState(false);
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <PadInspectorHeader pad={pad} />
 
-    return (
-        <>
-            <div style={{ display: "grid", gap: 14 }}>
-                <PadInspectorHeader pad={pad} />
+      {/* UI order only: Main → LFO → Env → Pos */}
+      <PadMainParamsSection pad={pad} />
+      <PadLfoSection pad={pad} />
+      <PadEnvSection pad={pad} />
+      <PadPosSection pad={pad} />
 
-                {/* Debug-only control: keep it out of the normal sections */}
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <button
-                        onClick={() => setIsRawOpen(true)}
-                        style={{
-                            padding: "6px 10px",
-                            borderRadius: 8,
-                            border: "1px solid rgba(255,255,255,0.18)",
-                            background: "rgba(255,255,255,0.06)",
-                            color: "inherit",
-                            cursor: "pointer",
-                            fontSize: 12,
-                            opacity: 0.9,
-                        }}
-                        title="Debug: show all raw params"
-                    >
-                        Raw params…
-                    </button>
-                </div>
+      <PadConfParamsSection pad={pad} />
+      <PadGranSection pad={pad} />
 
-                <PadMainParamsSection pad={pad} />
-                <PadConfParamsSection pad={pad} />
-                <PadSlicesSection pad={pad} />
-                <PadMultisampleMappingSection pad={pad} />
-            </div>
-
-            <PadRawParamsModal pad={pad} isOpen={isRawOpen} onClose={() => setIsRawOpen(false)} />
-        </>
-    );
+      <PadSlicesSection pad={pad} />
+      <PadMultisampleMappingSection pad={pad} />
+    </div>
+  );
 }
