@@ -24,19 +24,11 @@
               />
             </svg>
 
-            <!-- markers/brackets overlay -->
-            <div class="wf-overlay">
-              <div class="bracket bracket-sample" aria-label="Sample range"></div>
-              <div class="bracket bracket-loop" aria-label="Loop range"></div>
-              <div class="marker marker-sample-start" aria-label="Sample start"></div>
-              <div class="marker marker-sample-end" aria-label="Sample end"></div>
-              <div class="marker marker-loop-start" aria-label="Loop start"></div>
-              <div class="marker marker-loop-end" aria-label="Loop end"></div>
-              <div class="playhead" aria-label="Playhead"></div>
-            </div>
+            <!-- Overview overlay: ONLY the zoom window rectangle -->
+            <div class="wf-overlay" aria-hidden="true"></div>
           </div>
 
-          <!-- Large detailed view (zoom window) -->
+          <!-- Large detailed view -->
           <div class="wf-row wf-detail" aria-label="Waveform detail">
             <svg viewBox="0 0 1000 160" preserveAspectRatio="none" aria-hidden="true">
               <polyline class="wf-line wf-line-detail"
@@ -44,14 +36,11 @@
               />
             </svg>
 
-            <div class="wf-overlay">
-              <div class="bracket bracket-sample" aria-label="Sample range"></div>
-              <div class="bracket bracket-loop" aria-label="Loop range"></div>
-              <div class="marker marker-sample-start" aria-label="Sample start"></div>
-              <div class="marker marker-sample-end" aria-label="Sample end"></div>
-              <div class="marker marker-loop-start" aria-label="Loop start"></div>
-              <div class="marker marker-loop-end" aria-label="Loop end"></div>
-              <div class="playhead" aria-label="Playhead"></div>
+            <!-- Detail overlay: ONLY brackets + playhead (NO marker divs) -->
+            <div class="wf-overlay" aria-hidden="true">
+              <div class="bracket bracket-sample"></div>
+              <div class="bracket bracket-loop"></div>
+              <div class="playhead"></div>
             </div>
           </div>
         </div>
@@ -59,7 +48,6 @@
 
       <!-- Bottom layout -->
       <section class="pad-details">
-        <!-- Pads -->
         <div class="pads">
           <div class="pad">1</div><div class="pad">2</div><div class="pad">3</div><div class="pad">4</div>
           <div class="pad">5</div><div class="pad">6</div><div class="pad">7</div><div class="pad">8</div>
@@ -67,7 +55,6 @@
           <div class="pad">13</div><div class="pad">14</div><div class="pad">15</div><div class="pad">16</div>
         </div>
 
-        <!-- Middle column -->
         <div class="panel">
           <section class="block">
             <div class="block-title">Main Params</div>
@@ -103,7 +90,6 @@
           </section>
         </div>
 
-        <!-- Right column -->
         <div class="panel">
           <section class="block">
             <div class="block-title">Envelope (ADSR)</div>
