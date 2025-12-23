@@ -4,7 +4,7 @@
   --padmain-h: 350px;
 
   --bg:#0b0c0f;
-  --panel:#10131a;
+  --surface:#10131a;
   --line:#232735;
   --text:#e7e9ef;
   --muted:#9aa3b2;
@@ -48,31 +48,23 @@ body{
   padding:14px;
 }
 
+/* flatten panels: layout-only wrappers */
+.panel{
+  background:transparent;
+  border:none;
+  padding:0;
+}
+
+/* pads area: SHOULD have surface bg, but NO border */
 .pads{
-  background:var(--panel);
-  border:1px solid var(--line);
-  padding:14px;
   display:grid;
   grid-template-columns:repeat(4,1fr);
   gap:14px;
 }
 
-.pad{
-  height:78px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:var(--muted);
-  box-shadow:inset 0 0 0 1px var(--line);
-}
-
-.panel{
-  background:var(--panel);
-  border:1px solid var(--line);
-  padding:14px;
-}
-
+/* primary surface element (rename later if you want) */
 .block{
+  background:var(--surface);
   border:1px solid var(--line);
   padding:10px;
   display:flex;
@@ -103,9 +95,7 @@ body{
   gap:10px;
 }
 
-.block-knobs-4{
-  grid-template-columns:repeat(4,1fr);
-}
+.block-knobs-4{ grid-template-columns:repeat(4,1fr); }
 
 .knob{
   display:flex;
@@ -141,14 +131,8 @@ body{
   gap:6px;
 }
 
-.param-name{
-  font-size:11px;
-  color:var(--muted);
-}
-
-.param-value{
-  font-size:12px;
-}
+.param-name{ font-size:11px; color:var(--muted); }
+.param-value{ font-size:12px; }
 
 .kv-grid{
   display:grid;
@@ -164,16 +148,32 @@ body{
   gap:10px;
 }
 
-.k{
+.k{ color:var(--muted); font-size:11px; }
+.v{ color:var(--text); font-size:12px; }
+
+/* pads */
+.pad{
+  background: #10131a;
+  height:78px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   color:var(--muted);
-  font-size:11px;
+  box-shadow:inset 0 0 0 1px var(--line);
 }
 
-.v{
-  color:var(--text);
-  font-size:12px;
+.placeholder{ color:var(--muted); }
+
+/* --- FIX: prevent stretched pad cells + make pads fill their grid tracks --- */
+.pad-details{
+  align-items: start;       /* don't stretch the left column to match tallest column */
 }
 
-.placeholder{
-  color:var(--muted);
+.pads{
+  grid-auto-rows: 98px;     /* cell height Y */
+  align-content: start;     /* don't stretch rows vertically */
+}
+
+.pad{
+  height: 100%;             /* fill the grid cell */
 }
