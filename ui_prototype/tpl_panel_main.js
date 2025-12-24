@@ -39,7 +39,17 @@
     <section class="block">
       <h2 class="block-title">Config</h2>
       <div class="kv-grid">
-        <div class="kv inset"><div class="k">Launch Mode</div><div class="v">Toggle</div></div>
+        <div class="kv inset">
+          <div class="k">Launch Mode</div>
+          <div class="v">
+            <select aria-label="Launch Mode" class="select">
+              <option>Trigger</option>
+              <option>Gate</option>
+              <option selected>Toggle</option>
+            </select>
+          </div>
+        </div>
+
         <div class="kv inset"><div class="k">Output</div><div class="v">Out 1</div></div>
         <div class="kv inset"><div class="k">Poly Mode</div><div class="v">Poly</div></div>
         <div class="kv inset"><div class="k">Excl Group</div><div class="v">Excl A</div></div>
