@@ -51,13 +51,42 @@
     }
   }
 
+  function initFaders(root){
+    const faders = Array.from(root.querySelectorAll('input[type="range"][data-fader]'));
+    for (const f of faders) {
+      const row = f.closest('[data-fader-row]') || f.parentElement;
+      const out = row ? row.querySelector('[data-fader-value]') : null;
+
+      const decimals = Number(f.getAttribute('data-decimals') || '0');
+      const unit = f.getAttribute('data-unit') || '';
+
+      function format(v){
+        const n = Number(v);
+        if (!Number.isFinite(n)) return String(v);
+        const p = Math.pow(10, decimals);
+        const rounded = Math.round(n * p) / p;
+        return `${rounded.toFixed(decimals)}${unit}`;
+      }
+
+      function sync(){
+        if (out) out.textContent = format(f.value);
+      }
+
+      f.addEventListener('input', sync);
+      sync();
+    }
+  }
+
   function boot() {
     applyTemplates(document);
 
-    // Optional: init knobs if present
+    // Knobs (main + envelope)
     if (typeof window.initKnobs === 'function') {
       window.initKnobs(document);
     }
+
+    // Compact faders (secondary controls like LFO rate/depth)
+    initFaders(document);
   }
 
   if (document.readyState === 'loading') {

@@ -78,14 +78,24 @@
           </div>
         </div>
 
+        <!-- Use compact horizontal faders for "secondary" controls -->
         <div class="param inset">
           <div class="param-name">Rate</div>
           <div class="param-value">
-            <div class="knob knob--mini" data-knob>
-              <button class="knob-ring inset" type="button" aria-label="LFO Rate knob"
-                data-min="0" data-max="100" data-decimals="1" data-unit="%"
-                data-default="50"></button>
-              <div class="knob-value mono">50.0%</div>
+            <div class="fader-row" data-fader-row>
+              <input
+                class="fader"
+                type="range"
+                min="0"
+                max="100"
+                step="0.1"
+                value="50"
+                aria-label="LFO Rate"
+                data-fader
+                data-decimals="1"
+                data-unit="%"
+              />
+              <span class="fader-value mono" data-fader-value>50.0%</span>
             </div>
           </div>
         </div>
@@ -103,11 +113,20 @@
         <div class="param inset">
           <div class="param-name">Depth</div>
           <div class="param-value">
-            <div class="knob knob--mini" data-knob>
-              <button class="knob-ring inset" type="button" aria-label="LFO Depth knob"
-                data-min="0" data-max="100" data-decimals="1" data-unit="%"
-                data-default="0"></button>
-              <div class="knob-value mono">0.0%</div>
+            <div class="fader-row" data-fader-row>
+              <input
+                class="fader"
+                type="range"
+                min="0"
+                max="100"
+                step="0.1"
+                value="0"
+                aria-label="LFO Depth"
+                data-fader
+                data-decimals="1"
+                data-unit="%"
+              />
+              <span class="fader-value mono" data-fader-value>0.0%</span>
             </div>
           </div>
         </div>

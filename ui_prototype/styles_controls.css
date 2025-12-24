@@ -12,7 +12,7 @@
   border-radius: 0px;
   line-height: 1.2;
   cursor: pointer;
-  min-width: 120px; /* user-set: keep readable when collapsed */
+  min-width: 120px; /* user-set */
   text-align: right;
 }
 
@@ -56,7 +56,7 @@
   width: 14px;
   height: 14px;
   margin: 0;
-  accent-color: #ffffff; /* keep simple; uses OS checkbox style */
+  accent-color: #ffffff;
 }
 
 .check span{
@@ -69,3 +69,30 @@
 /* visually match value alignment in grids */
 .kv .v .check{ margin-left: auto; }
 .param-value .check{ margin-left: 0; }
+
+/* --- UI: compact horizontal fader for secondary controls --- */
+.fader-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  width:100%;
+  min-width:0;
+}
+
+.fader{
+  flex: 1 1 auto;
+  min-width: 90px;
+  height: 18px;
+  background: transparent;
+  cursor: ew-resize;
+  accent-color: #ffffff; /* keep simple */
+}
+
+.fader-value{
+  flex: 0 0 auto;
+  min-width: 62px;
+  text-align: right;
+  color: var(--text);
+  font-size: 11px;
+  opacity: 0.95;
+}
