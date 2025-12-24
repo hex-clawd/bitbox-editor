@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "bitbox-editor-proto",
+  "version": "0.1.0",
+  "identifier": "com.sssnoise.bitboxeditor.proto",
+  "build": {
+    "beforeDevCommand": "npm run dev:proto",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build:proto",
+    "frontendDist": "../dist-proto"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "bitbox-editor (Prototype)",
+        "width": 1200,
+        "height": 800
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false
+  }
+}

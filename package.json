@@ -5,9 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:proto": "UI_PROTO=1 vite",
     "build": "tsc && vite build",
+    "build:proto": "UI_PROTO=1 tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:proto": "UI_PROTO=1 tauri dev --config src-tauri/tauri.conf.proto.json",
+    "tauri:build": "tauri build",
+    "tauri:build:proto": "UI_PROTO=1 tauri build --config src-tauri/tauri.conf.proto.json"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.9.1",
