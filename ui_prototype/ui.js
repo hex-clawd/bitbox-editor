@@ -53,7 +53,7 @@
 
   function initFaders(root){
     // Only faders with an output element need JS updates.
-    // (Loop Fade intentionally has no value display.)
+    // (Most faders intentionally have no numeric tail.)
     const faders = Array.from(root.querySelectorAll('input[type="range"][data-fader]'));
     for (const f of faders) {
       const row = f.closest('[data-fader-row]') || f.parentElement;
@@ -71,13 +71,29 @@
         return `${rounded.toFixed(decimals)}${unit}`;
       }
 
-      function sync(){
-        out.textContent = format(f.value);
-      }
-
+      function sync(){ out.textContent = format(f.value); }
       f.addEventListener('input', sync);
       sync();
     }
+  }
+
+  function initSpecificModeSwitch(root){
+    const select = root.querySelector('[data-mode-select]');
+    if (!select) return;
+
+    const sections = Array.from(root.querySelectorAll('[data-specific-section][data-mode]'));
+    function norm(s){ return String(s || '').trim().toLowerCase(); }
+
+    function apply(){
+      const value = norm(select.value);
+      for (const s of sections) {
+        const smode = norm(s.getAttribute('data-mode'));
+        s.hidden = smode !== value;
+      }
+    }
+
+    select.addEventListener('change', apply);
+    apply();
   }
 
   function boot() {
@@ -88,6 +104,7 @@
     }
 
     initFaders(document);
+    initSpecificModeSwitch(document);
   }
 
   if (document.readyState === 'loading') {
