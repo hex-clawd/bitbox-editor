@@ -115,6 +115,21 @@
   border-right: 16px solid currentColor;
 }
 
+/* Drag handles: bigger hit target than the triangle */
+.bracket-handle{
+  position:absolute;
+  top:-18px;          /* extend above triangle */
+  height:44px;        /* generous target */
+  width:44px;         /* generous target */
+  pointer-events:auto;
+  cursor:ew-resize;
+  touch-action:none;
+  background:transparent;
+}
+
+.bracket-handle--l{ left:-22px; }
+.bracket-handle--r{ right:-22px; }
+
 /* footer params below detail waveform */
 .wf-footer{
   display:grid;

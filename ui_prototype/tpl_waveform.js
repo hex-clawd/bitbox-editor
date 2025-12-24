@@ -13,7 +13,7 @@
       </section>
 
       <!-- Large detailed view -->
-      <section class="wf-row wf-detail" aria-label="Waveform detail">
+      <section class="wf-row wf-detail" aria-label="Waveform detail" data-wf-detail>
         <svg viewBox="0 0 1000 160" preserveAspectRatio="none" aria-hidden="true">
           <polyline class="wf-line wf-line-detail"
             points="0,90 30,20 60,140 90,30 120,120 150,35 180,130 210,25 240,145 270,40 300,120 330,30 360,140 390,22 420,150 450,38 480,110 510,30 540,145 570,26 600,140 630,35 660,120 690,28 720,150 750,40 780,120 810,30 840,140 870,25 900,150 930,35 960,120 990,40 1000,90"
@@ -21,8 +21,16 @@
         </svg>
 
         <div class="wf-overlay" aria-hidden="true">
-          <div class="bracket bracket--sample"></div>
-          <div class="bracket bracket--loop"></div>
+          <div class="bracket bracket--sample" data-bracket="sample">
+            <div class="bracket-handle bracket-handle--l" data-bracket="sample" data-side="start" aria-label="Sample Start Handle"></div>
+            <div class="bracket-handle bracket-handle--r" data-bracket="sample" data-side="end" aria-label="Sample End Handle"></div>
+          </div>
+
+          <div class="bracket bracket--loop" data-bracket="loop">
+            <div class="bracket-handle bracket-handle--l" data-bracket="loop" data-side="start" aria-label="Loop Start Handle"></div>
+            <div class="bracket-handle bracket-handle--r" data-bracket="loop" data-side="end" aria-label="Loop End Handle"></div>
+          </div>
+
           <div class="playhead"></div>
         </div>
       </section>
