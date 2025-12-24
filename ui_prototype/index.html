@@ -43,7 +43,7 @@
           </div>
         </section>
 
-        <!-- NEW: big-number params under detail waveform -->
+        <!-- big-number params under detail waveform -->
         <section class="wf-footer" aria-label="Sample range parameters">
           <div class="kv kv--wide inset">
             <div class="k">Sample Start</div>
@@ -78,11 +78,35 @@
         <section class="block">
           <h2 class="block-title">Main Params</h2>
           <div class="block-knobs">
-            <div class="knob"><div class="knob-ring inset"></div><div class="knob-label">Level</div></div>
-            <div class="knob"><div class="knob-ring inset"></div><div class="knob-label">Pitch</div></div>
-            <div class="knob"><div class="knob-ring inset"></div><div class="knob-label">Filter</div></div>
-            <div class="knob"><div class="knob-ring inset"></div><div class="knob-label">Res</div></div>
-            <div class="knob"><div class="knob-ring inset"></div><div class="knob-label">Pan</div></div>
+            <div class="knob" data-knob>
+              <button class="knob-ring inset" type="button" aria-label="Level knob" data-value="50" data-min="0" data-max="100"></button>
+              <div class="knob-label">Level</div>
+              <div class="knob-value mono">50</div>
+            </div>
+
+            <div class="knob" data-knob>
+              <button class="knob-ring inset" type="button" aria-label="Pitch knob" data-value="50" data-min="0" data-max="100"></button>
+              <div class="knob-label">Pitch</div>
+              <div class="knob-value mono">50</div>
+            </div>
+
+            <div class="knob" data-knob>
+              <button class="knob-ring inset" type="button" aria-label="Filter knob" data-value="50" data-min="0" data-max="100"></button>
+              <div class="knob-label">Filter</div>
+              <div class="knob-value mono">50</div>
+            </div>
+
+            <div class="knob" data-knob>
+              <button class="knob-ring inset" type="button" aria-label="Res knob" data-value="50" data-min="0" data-max="100"></button>
+              <div class="knob-label">Res</div>
+              <div class="knob-value mono">50</div>
+            </div>
+
+            <div class="knob" data-knob>
+              <button class="knob-ring inset" type="button" aria-label="Pan knob" data-value="50" data-min="0" data-max="100"></button>
+              <div class="knob-label">Pan</div>
+              <div class="knob-value mono">50</div>
+            </div>
           </div>
         </section>
 
@@ -119,10 +143,29 @@
             </svg>
           </div>
           <div class="block-knobs block-knobs--4">
-            <div class="knob"><div class="knob-ring inset"></div><div class="knob-label">Attack</div></div>
-            <div class="knob"><div class="knob-ring inset"></div><div class="knob-label">Decay</div></div>
-            <div class="knob"><div class="knob-ring inset"></div><div class="knob-label">Sustain</div></div>
-            <div class="knob"><div class="knob-ring inset"></div><div class="knob-label">Release</div></div>
+            <div class="knob" data-knob>
+              <button class="knob-ring inset" type="button" aria-label="Attack knob" data-value="50" data-min="0" data-max="100"></button>
+              <div class="knob-label">Attack</div>
+              <div class="knob-value mono">50</div>
+            </div>
+
+            <div class="knob" data-knob>
+              <button class="knob-ring inset" type="button" aria-label="Decay knob" data-value="50" data-min="0" data-max="100"></button>
+              <div class="knob-label">Decay</div>
+              <div class="knob-value mono">50</div>
+            </div>
+
+            <div class="knob" data-knob>
+              <button class="knob-ring inset" type="button" aria-label="Sustain knob" data-value="50" data-min="0" data-max="100"></button>
+              <div class="knob-label">Sustain</div>
+              <div class="knob-value mono">50</div>
+            </div>
+
+            <div class="knob" data-knob>
+              <button class="knob-ring inset" type="button" aria-label="Release knob" data-value="50" data-min="0" data-max="100"></button>
+              <div class="knob-label">Release</div>
+              <div class="knob-value mono">50</div>
+            </div>
           </div>
         </section>
 
@@ -147,5 +190,8 @@
     </section>
   </main>
 </div>
+
+<script src="ui.js"></script>
+
 </body>
 </html>
