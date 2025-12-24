@@ -2,15 +2,36 @@
   window.UI_TEMPLATES = window.UI_TEMPLATES || {};
 
   const waveOptions = [
-    'Saw', 'Reverse Saw', 'Triangle', 'Positive Triangle',
-    'Sine', 'Positive Sine', 'Square', 'Positive Square', 'Random'
+    'Saw',
+    'RevSaw',
+    'Triangle',
+    'PosTri',
+    'Sine',
+    'PosSine',
+    'Square',
+    'PosSquare',
+    'Random'
   ].map(v => `<option${v === 'Saw' ? ' selected' : ''}>${v}</option>`).join('');
 
-  const beatSyncValues = [
-    '8','4','2','1','1/2','1/2T','1/4','1/4T','1/8','1/8T',
-    '1/16','1/16T','1/32','1/32T','1/64'
+  // Beat Sync: first values are explicit "bars", rest are subdivisions.
+  const beatSyncDisplay = [
+    '8 bars',
+    '4 bars',
+    '2 bars',
+    '1 bar',
+    '1/2',
+    '1/2T',
+    '1/4',
+    '1/4T',
+    '1/8',
+    '1/8T',
+    '1/16',
+    '1/16T',
+    '1/32',
+    '1/32T',
+    '1/64'
   ];
-  const beatSyncOptions = beatSyncValues
+  const beatSyncOptions = beatSyncDisplay
     .map(v => `<option${v === '1/16' ? ' selected' : ''}>${v}</option>`)
     .join('');
 
@@ -69,86 +90,47 @@
       </div>
 
       <div class="param-grid">
-        <div class="param inset">
+        <div class="param param--inline inset">
           <div class="param-name">Waveform</div>
           <div class="param-value">
-            <select aria-label="LFO Waveform" class="select">
-              ${waveOptions}
-            </select>
+            <select aria-label="LFO Waveform" class="select">${waveOptions}</select>
           </div>
         </div>
 
-        <!-- Use compact horizontal faders for "secondary" controls -->
-        <div class="param inset">
+        <div class="param param--inline inset">
           <div class="param-name">Rate</div>
           <div class="param-value">
-            <div class="fader-row" data-fader-row>
-              <input
-                class="fader"
-                type="range"
-                min="0"
-                max="100"
-                step="0.1"
-                value="50"
-                aria-label="LFO Rate"
-                data-fader
-                data-decimals="1"
-                data-unit="%"
-              />
-              <span class="fader-value mono" data-fader-value>50.0%</span>
+            <div class="fader-row fader-row--noval">
+              <input class="fader" type="range" min="0" max="100" step="0.1" value="50" aria-label="LFO Rate" />
             </div>
           </div>
         </div>
 
-        <div class="param inset">
+        <div class="param param--inline inset">
           <div class="param-name">Beat Sync</div>
           <div class="param-value">
-            <select aria-label="LFO Beat Sync" class="select">
-              ${beatSyncOptions}
-            </select>
-            <span class="unit-suffix mono">bars</span>
+            <select aria-label="LFO Beat Sync" class="select">${beatSyncOptions}</select>
           </div>
         </div>
 
-        <div class="param inset">
+        <div class="param param--inline inset">
           <div class="param-name">Depth</div>
           <div class="param-value">
-            <div class="fader-row" data-fader-row>
-              <input
-                class="fader"
-                type="range"
-                min="0"
-                max="100"
-                step="0.1"
-                value="0"
-                aria-label="LFO Depth"
-                data-fader
-                data-decimals="1"
-                data-unit="%"
-              />
-              <span class="fader-value mono" data-fader-value>0.0%</span>
+            <div class="fader-row fader-row--noval">
+              <input class="fader" type="range" min="0" max="100" step="0.1" value="0" aria-label="LFO Depth" />
             </div>
           </div>
         </div>
 
-        <div class="param inset">
+        <!-- checkbox sits directly (no .v wrapper, matches kv style) -->
+        <div class="param param--inline inset param--check">
           <div class="param-name">Beat</div>
-          <div class="param-value">
-            <label class="check" aria-label="LFO Beat">
-              <input type="checkbox" checked />
-              <span>On</span>
-            </label>
-          </div>
+          <label class="check" aria-label="LFO Beat"><input type="checkbox" checked /></label>
         </div>
 
-        <div class="param inset">
+        <div class="param param--inline inset param--check">
           <div class="param-name">Trig</div>
-          <div class="param-value">
-            <label class="check" aria-label="LFO Trig">
-              <input type="checkbox" />
-              <span>On</span>
-            </label>
-          </div>
+          <label class="check" aria-label="LFO Trig"><input type="checkbox" /></label>
         </div>
       </div>
     </section>

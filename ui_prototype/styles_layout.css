@@ -87,6 +87,7 @@
   gap:10px;
 }
 
+/* default param layout (kept for other sections if any) */
 .param{
   padding:8px 10px;
   display:flex;
@@ -103,4 +104,23 @@
   font-size: 11px;
   white-space: nowrap;
   opacity: 0.9;
+}
+
+/* INLINE param layout (LFO etc): label + control on the SAME line */
+.param--inline{
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap:10px;
+}
+
+.param--inline .param-name{
+  flex: 0 0 auto;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.param--inline .param-value{
+  flex: 1 1 auto;
+  justify-content: flex-end;
 }

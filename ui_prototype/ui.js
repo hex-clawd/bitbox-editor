@@ -2,7 +2,7 @@
  * Boot (file:// safe):
  * - Templates are registered on window.UI_TEMPLATES by tpl_*.js files.
  * - Any element with [data-tpl="id"] gets replaced with that template HTML.
- * - Supports nesting (tpl-pad-details contains tpl-pads + panels etc).
+ * - Supports nesting.
  */
 (function () {
   function T() {
@@ -52,10 +52,13 @@
   }
 
   function initFaders(root){
+    // Only faders with an output element need JS updates.
+    // (Loop Fade intentionally has no value display.)
     const faders = Array.from(root.querySelectorAll('input[type="range"][data-fader]'));
     for (const f of faders) {
       const row = f.closest('[data-fader-row]') || f.parentElement;
       const out = row ? row.querySelector('[data-fader-value]') : null;
+      if (!out) continue;
 
       const decimals = Number(f.getAttribute('data-decimals') || '0');
       const unit = f.getAttribute('data-unit') || '';
@@ -69,7 +72,7 @@
       }
 
       function sync(){
-        if (out) out.textContent = format(f.value);
+        out.textContent = format(f.value);
       }
 
       f.addEventListener('input', sync);
@@ -80,12 +83,10 @@
   function boot() {
     applyTemplates(document);
 
-    // Knobs (main + envelope)
     if (typeof window.initKnobs === 'function') {
       window.initKnobs(document);
     }
 
-    // Compact faders (secondary controls like LFO rate/depth)
     initFaders(document);
   }
 

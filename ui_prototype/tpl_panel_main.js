@@ -1,14 +1,12 @@
 (function () {
   window.UI_TEMPLATES = window.UI_TEMPLATES || {};
 
-  // ---- MIDI In options: None, Ch1..Ch16
   const midiInOptions =
     ['None']
       .concat(Array.from({ length: 16 }, (_, i) => `Ch${i + 1}`))
       .map(v => `<option${v === 'Ch8' ? ' selected' : ''}>${v}</option>`)
       .join('');
 
-  // ---- Pad Note options: Default, C#-1 .. G9
   const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   function midiToNoteName(n){
     const name = NOTE_NAMES[n % 12];
@@ -122,22 +120,16 @@
         <div class="kv inset">
           <div class="k">Loop Fade</div>
           <div class="v">
-            <div class="knob knob--mini" data-knob>
-              <button class="knob-ring inset" type="button"
-                data-min="0" data-max="100" data-decimals="0" data-unit="%" data-default="0"></button>
-              <div class="knob-value mono">0%</div>
+            <div class="fader-row fader-row--noval">
+              <input class="fader" type="range" min="0" max="100" step="1" value="0" aria-label="Loop Fade" />
             </div>
           </div>
         </div>
 
-        <div class="kv inset">
+        <!-- checkbox sits directly in the row (no .v wrapper) -->
+        <div class="kv inset kv--check">
           <div class="k">Reverse</div>
-          <div class="v">
-            <label class="check" aria-label="Reverse">
-              <input type="checkbox" />
-              <span>On</span>
-            </label>
-          </div>
+          <label class="check" aria-label="Reverse"><input type="checkbox" /></label>
         </div>
 
         <div class="kv inset"><div class="k">Beat Count</div><div class="v">16</div></div>
