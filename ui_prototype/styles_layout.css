@@ -83,18 +83,24 @@
 /* params */
 .param-grid{
   display:grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap:10px;
 }
 
 .param{
-  padding:6px 4px;
+  padding:8px 10px;
   display:flex;
   flex-direction:column;
-  align-items:center;
-  gap:6px;
+  gap:8px;
   min-width:0;
 }
 
 .param-name{ font-size:11px; color:var(--muted); }
-.param-value{ font-size:12px; }
+.param-value{ font-size:12px; display:flex; align-items:center; gap:8px; min-width:0; }
+
+.unit-suffix{
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0.9;
+}

@@ -1,5 +1,30 @@
 (function () {
   window.UI_TEMPLATES = window.UI_TEMPLATES || {};
+
+  // ---- MIDI In options: None, Ch1..Ch16
+  const midiInOptions =
+    ['None']
+      .concat(Array.from({ length: 16 }, (_, i) => `Ch${i + 1}`))
+      .map(v => `<option${v === 'Ch8' ? ' selected' : ''}>${v}</option>`)
+      .join('');
+
+  // ---- Pad Note options: Default, C#-1 .. G9 (i.e. MIDI 1..127)
+  const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  function midiToNoteName(n){
+    const name = NOTE_NAMES[n % 12];
+    const octave = Math.floor(n / 12) - 1;
+    return `${name}${octave}`;
+  }
+  const padNoteOptions =
+    ['<option selected>Default</option>']
+      .concat(
+        Array.from({ length: 127 - 1 + 1 }, (_, idx) => { // 1..127
+          const n = idx + 1;
+          return `<option>${midiToNoteName(n)}</option>`;
+        })
+      )
+      .join('');
+
   window.UI_TEMPLATES['tpl-panel-main'] = `
     <section class="block">
       <h2 class="block-title">Main Params</h2>
@@ -36,7 +61,7 @@
           <div class="knob-value mono">+0.0st</div>
         </div>
 
-        <!-- Filter: -100% .. +100% (default 0.0%) -->
+        <!-- Filter: -100.0% .. +100.0% (default 0.0%) -->
         <div class="knob" data-knob>
           <button
             class="knob-ring inset"
@@ -52,7 +77,7 @@
           <div class="knob-value mono">+0.0%</div>
         </div>
 
-        <!-- Resonance: 0..100% (default 0.0%) -->
+        <!-- Resonance: 0.0..100.0% -->
         <div class="knob" data-knob>
           <button
             class="knob-ring inset"
@@ -68,7 +93,7 @@
           <div class="knob-value mono">0.0%</div>
         </div>
 
-        <!-- Pan: -100.0% .. +100.0% (default 0.0%) -->
+        <!-- Pan: -100.0% .. +100.0% -->
         <div class="knob" data-knob>
           <button
             class="knob-ring inset"
@@ -144,8 +169,23 @@
           </div>
         </div>
 
-        <div class="kv inset"><div class="k">Midi In</div><div class="v">Ch 8</div></div>
-        <div class="kv inset"><div class="k">Pad Note</div><div class="v">Default</div></div>
+        <div class="kv inset">
+          <div class="k">MIDI In</div>
+          <div class="v">
+            <select aria-label="MIDI In" class="select">
+              ${midiInOptions}
+            </select>
+          </div>
+        </div>
+
+        <div class="kv inset">
+          <div class="k">Pad Note</div>
+          <div class="v">
+            <select aria-label="Pad Note" class="select">
+              ${padNoteOptions}
+            </select>
+          </div>
+        </div>
       </div>
     </section>
 

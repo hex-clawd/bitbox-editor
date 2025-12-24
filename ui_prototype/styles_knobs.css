@@ -24,10 +24,6 @@
   position: relative;
   cursor: ns-resize;
   touch-action: none; /* crucial: allow pointer drag without scrolling */
-
-  /* JS writes --knob-rot in a 0/360 = DOWN convention (15..345).
-     CSS rotate() uses 0 = RIGHT, but our visual "zero" is DOWN,
-     so we keep the same offset logic that worked before. */
   transform: rotate(calc(var(--knob-rot, 180deg) - 180deg));
   transform-origin: 50% 50%;
 }
@@ -69,3 +65,10 @@
 
 .knob-label{ font-size:11px; color:var(--muted); line-height:1; }
 .knob-value{ font-size:11px; color:var(--text); line-height:1; opacity:0.95; }
+
+/* mini knob variant (for LFO panel cells) */
+.knob--mini{ gap:6px; }
+.knob--mini .knob-ring{ width:36px; height:36px; }
+.knob--mini .knob-ring::before{ inset:8px; }
+.knob--mini .knob-ring::after{ height:14px; }
+.knob--mini .knob-label{ display:none; }
