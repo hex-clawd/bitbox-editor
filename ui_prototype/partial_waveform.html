@@ -1,0 +1,48 @@
+<div class="wf">
+  <!-- Small overview (whole file) -->
+  <section class="wf-row wf-overview" aria-label="Waveform overview">
+    <svg viewBox="0 0 1000 60" preserveAspectRatio="none" aria-hidden="true">
+      <polyline class="wf-line"
+                points="0,35 20,30 40,40 60,25 80,35 100,20 120,38 140,30 160,45 180,22 200,34 220,18 240,40 260,28 280,42 300,26 320,38 340,20 360,36 380,24 400,44 420,22 440,34 460,18 480,40 500,28 520,42 540,24 560,38 580,20 600,36 620,26 640,44 660,22 680,34 700,18 720,40 740,30 760,45 780,22 800,34 820,18 840,40 860,26 880,42 900,24 920,38 940,20 960,36 980,28 1000,35"
+      />
+    </svg>
+
+    <!-- Overview overlay: zoom window -->
+    <div class="wf-overlay" aria-hidden="true"></div>
+  </section>
+
+  <!-- Large detailed view -->
+  <section class="wf-row wf-detail" aria-label="Waveform detail">
+    <svg viewBox="0 0 1000 160" preserveAspectRatio="none" aria-hidden="true">
+      <polyline class="wf-line wf-line-detail"
+                points="0,90 30,20 60,140 90,30 120,120 150,35 180,130 210,25 240,145 270,40 300,120 330,30 360,140 390,22 420,150 450,38 480,110 510,30 540,145 570,26 600,140 630,35 660,120 690,28 720,150 750,40 780,120 810,30 840,140 870,25 900,150 930,35 960,120 990,40 1000,90"
+      />
+    </svg>
+
+    <div class="wf-overlay" aria-hidden="true">
+      <div class="bracket bracket--sample"></div>
+      <div class="bracket bracket--loop"></div>
+      <div class="playhead"></div>
+    </div>
+  </section>
+
+  <!-- big-number params under detail waveform -->
+  <section class="wf-footer" aria-label="Sample range parameters">
+    <div class="kv kv--wide inset">
+      <div class="k">Sample Start</div>
+      <div class="v mono">12,345,678</div>
+    </div>
+    <div class="kv kv--wide inset">
+      <div class="k">Sample Length</div>
+      <div class="v mono">123,456,789</div>
+    </div>
+    <div class="kv kv--wide inset">
+      <div class="k">Loop Start</div>
+      <div class="v mono">23,456,789</div>
+    </div>
+    <div class="kv kv--wide inset">
+      <div class="k">Loop End</div>
+      <div class="v mono">98,765,432</div>
+    </div>
+  </section>
+</div>

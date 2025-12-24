@@ -1,0 +1,58 @@
+(function () {
+  window.UI_TEMPLATES = window.UI_TEMPLATES || {};
+  window.UI_TEMPLATES['tpl-panel-mod'] = `
+    <section class="block">
+      <h2 class="block-title">Envelope (ADSR)</h2>
+      <div class="block-graph inset" aria-hidden="true">
+        <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+          <polyline points="0,38 18,6 38,22 62,22 92,38"
+            fill="none" stroke="currentColor" stroke-width="0.75"/>
+        </svg>
+      </div>
+
+      <div class="block-knobs block-knobs--4">
+        <div class="knob" data-knob>
+          <button class="knob-ring inset" type="button" aria-label="Attack knob"></button>
+          <div class="knob-label">Attack</div>
+          <div class="knob-value mono">50</div>
+        </div>
+
+        <div class="knob" data-knob>
+          <button class="knob-ring inset" type="button" aria-label="Decay knob"></button>
+          <div class="knob-label">Decay</div>
+          <div class="knob-value mono">50</div>
+        </div>
+
+        <div class="knob" data-knob>
+          <button class="knob-ring inset" type="button" aria-label="Sustain knob"></button>
+          <div class="knob-label">Sustain</div>
+          <div class="knob-value mono">50</div>
+        </div>
+
+        <div class="knob" data-knob>
+          <button class="knob-ring inset" type="button" aria-label="Release knob"></button>
+          <div class="knob-label">Release</div>
+          <div class="knob-value mono">50</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2 class="block-title">LFO</h2>
+      <div class="block-graph inset" aria-hidden="true">
+        <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+          <polyline points="0,30 50,8 50,30 100,8"
+            fill="none" stroke="currentColor" stroke-width="0.75"/>
+        </svg>
+      </div>
+
+      <div class="param-grid">
+        <div class="param inset"><div class="param-name">Wave</div><div class="param-value">Saw</div></div>
+        <div class="param inset"><div class="param-name">Rate</div><div class="param-value">—</div></div>
+        <div class="param inset"><div class="param-name">Amount</div><div class="param-value">—</div></div>
+        <div class="param inset"><div class="param-name">Beat Sync</div><div class="param-value">On</div></div>
+        <div class="param inset"><div class="param-name">Rate Sync</div><div class="param-value">1/16</div></div>
+      </div>
+    </section>
+  `;
+})();

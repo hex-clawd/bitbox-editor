@@ -1,0 +1,31 @@
+:root{
+  --app-max: 1400px;
+
+  --toolbar-h: 70px;
+  --padmain-h: 350px;
+
+  --bg:#0b0c0f;
+  --surface:#10131a;
+  --line:#232735;
+  --text:#e7e9ef;
+  --muted:#9aa3b2;
+
+  --gap: 14px;
+  --pad-h: 78px;
+  --radius: 0px; /* keep square for now; easy future knob */
+
+  /* waveform marker positions (percent) */
+  --sample-start: 8%;
+  --sample-end: 92%;
+  --loop-start: 22%;
+  --loop-end: 58%;
+  --playhead: 35%;
+
+  /* overview zoom window */
+  --view-start: 18%;
+  --view-end: 62%;
+
+  /* bracket colors */
+  --bracket-sample: #b44bd6;
+  --bracket-loop:   #59d6ff;
+}

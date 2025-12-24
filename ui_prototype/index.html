@@ -7,191 +7,24 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-<div class="app">
-  <header class="toolbar">
-    <div class="placeholder">Toolbar</div>
-  </header>
+  <div class="app">
+    <header class="toolbar" data-tpl="tpl-toolbar" aria-label="Toolbar"></header>
 
-  <main class="content">
-    <!-- Waveform area -->
-    <section class="pad-main" aria-label="Sample editor">
-      <div class="wf">
-        <!-- Small overview (whole file) -->
-        <section class="wf-row wf-overview" aria-label="Waveform overview">
-          <svg viewBox="0 0 1000 60" preserveAspectRatio="none" aria-hidden="true">
-            <polyline class="wf-line"
-                      points="0,35 20,30 40,40 60,25 80,35 100,20 120,38 140,30 160,45 180,22 200,34 220,18 240,40 260,28 280,42 300,26 320,38 340,20 360,36 380,24 400,44 420,22 440,34 460,18 480,40 500,28 520,42 540,24 560,38 580,20 600,36 620,26 640,44 660,22 680,34 700,18 720,40 740,30 760,45 780,22 800,34 820,18 840,40 860,26 880,42 900,24 920,38 940,20 960,36 980,28 1000,35"
-            />
-          </svg>
+    <main class="content">
+      <section class="pad-main" data-tpl="tpl-waveform" aria-label="Sample editor"></section>
+      <section class="pad-details" data-tpl="tpl-pad-details" aria-label="Pad parameters"></section>
+    </main>
+  </div>
 
-          <!-- Overview overlay: zoom window -->
-          <div class="wf-overlay" aria-hidden="true"></div>
-        </section>
+  <!-- file:// SAFE: no modules, no imports, no fetch() -->
+  <script src="./tpl_toolbar.js"></script>
+  <script src="./tpl_waveform.js"></script>
+  <script src="./tpl_pad_details.js"></script>
+  <script src="./tpl_pads.js"></script>
+  <script src="./tpl_panel_main.js"></script>
+  <script src="./tpl_panel_mod.js"></script>
 
-        <!-- Large detailed view -->
-        <section class="wf-row wf-detail" aria-label="Waveform detail">
-          <svg viewBox="0 0 1000 160" preserveAspectRatio="none" aria-hidden="true">
-            <polyline class="wf-line wf-line-detail"
-                      points="0,90 30,20 60,140 90,30 120,120 150,35 180,130 210,25 240,145 270,40 300,120 330,30 360,140 390,22 420,150 450,38 480,110 510,30 540,145 570,26 600,140 630,35 660,120 690,28 720,150 750,40 780,120 810,30 840,140 870,25 900,150 930,35 960,120 990,40 1000,90"
-            />
-          </svg>
-
-          <div class="wf-overlay" aria-hidden="true">
-            <div class="bracket bracket--sample"></div>
-            <div class="bracket bracket--loop"></div>
-            <div class="playhead"></div>
-          </div>
-        </section>
-
-        <!-- big-number params under detail waveform -->
-        <section class="wf-footer" aria-label="Sample range parameters">
-          <div class="kv kv--wide inset">
-            <div class="k">Sample Start</div>
-            <div class="v mono">12,345,678</div>
-          </div>
-          <div class="kv kv--wide inset">
-            <div class="k">Sample Length</div>
-            <div class="v mono">123,456,789</div>
-          </div>
-          <div class="kv kv--wide inset">
-            <div class="k">Loop Start</div>
-            <div class="v mono">23,456,789</div>
-          </div>
-          <div class="kv kv--wide inset">
-            <div class="k">Loop End</div>
-            <div class="v mono">98,765,432</div>
-          </div>
-        </section>
-      </div>
-    </section>
-
-    <!-- Bottom layout -->
-    <section class="pad-details" aria-label="Pad parameters">
-      <section class="pads" aria-label="Pads">
-        <div class="pad inset">1</div><div class="pad inset">2</div><div class="pad inset">3</div><div class="pad inset">4</div>
-        <div class="pad inset">5</div><div class="pad inset">6</div><div class="pad inset">7</div><div class="pad inset">8</div>
-        <div class="pad inset">9</div><div class="pad inset">10</div><div class="pad inset">11</div><div class="pad inset">12</div>
-        <div class="pad inset">13</div><div class="pad inset">14</div><div class="pad inset">15</div><div class="pad inset">16</div>
-      </section>
-
-      <section class="panel" aria-label="Main & config">
-        <section class="block">
-          <h2 class="block-title">Main Params</h2>
-          <div class="block-knobs">
-            <div class="knob" data-knob>
-              <button class="knob-ring inset" type="button" aria-label="Level knob" data-value="50" data-min="0" data-max="100"></button>
-              <div class="knob-label">Level</div>
-              <div class="knob-value mono">50</div>
-            </div>
-
-            <div class="knob" data-knob>
-              <button class="knob-ring inset" type="button" aria-label="Pitch knob" data-value="50" data-min="0" data-max="100"></button>
-              <div class="knob-label">Pitch</div>
-              <div class="knob-value mono">50</div>
-            </div>
-
-            <div class="knob" data-knob>
-              <button class="knob-ring inset" type="button" aria-label="Filter knob" data-value="50" data-min="0" data-max="100"></button>
-              <div class="knob-label">Filter</div>
-              <div class="knob-value mono">50</div>
-            </div>
-
-            <div class="knob" data-knob>
-              <button class="knob-ring inset" type="button" aria-label="Res knob" data-value="50" data-min="0" data-max="100"></button>
-              <div class="knob-label">Res</div>
-              <div class="knob-value mono">50</div>
-            </div>
-
-            <div class="knob" data-knob>
-              <button class="knob-ring inset" type="button" aria-label="Pan knob" data-value="50" data-min="0" data-max="100"></button>
-              <div class="knob-label">Pan</div>
-              <div class="knob-value mono">50</div>
-            </div>
-          </div>
-        </section>
-
-        <section class="block">
-          <h2 class="block-title">Config</h2>
-          <div class="kv-grid">
-            <div class="kv inset"><div class="k">Launch Mode</div><div class="v">Toggle</div></div>
-            <div class="kv inset"><div class="k">Output</div><div class="v">Out 1</div></div>
-            <div class="kv inset"><div class="k">Poly Mode</div><div class="v">Poly</div></div>
-            <div class="kv inset"><div class="k">Excl Group</div><div class="v">Excl A</div></div>
-            <div class="kv inset"><div class="k">Midi In</div><div class="v">Ch 8</div></div>
-            <div class="kv inset"><div class="k">Pad Note</div><div class="v">Default</div></div>
-          </div>
-        </section>
-
-        <section class="block">
-          <h2 class="block-title">Misc</h2>
-          <div class="kv-grid">
-            <div class="kv inset"><div class="k">Loop Mode</div><div class="v">On</div></div>
-            <div class="kv inset"><div class="k">Beat Count</div><div class="v">16</div></div>
-            <div class="kv inset"><div class="k">Quant Size</div><div class="v">1 bar</div></div>
-            <div class="kv inset"><div class="k">Sync</div><div class="v">1/8</div></div>
-          </div>
-        </section>
-      </section>
-
-      <section class="panel" aria-label="Modulation">
-        <section class="block">
-          <h2 class="block-title">Envelope (ADSR)</h2>
-          <div class="block-graph inset" aria-hidden="true">
-            <svg viewBox="0 0 100 40" preserveAspectRatio="none">
-              <polyline points="0,38 18,6 38,22 62,22 92,38"
-                        fill="none" stroke="currentColor" stroke-width="0.75"/>
-            </svg>
-          </div>
-          <div class="block-knobs block-knobs--4">
-            <div class="knob" data-knob>
-              <button class="knob-ring inset" type="button" aria-label="Attack knob" data-value="50" data-min="0" data-max="100"></button>
-              <div class="knob-label">Attack</div>
-              <div class="knob-value mono">50</div>
-            </div>
-
-            <div class="knob" data-knob>
-              <button class="knob-ring inset" type="button" aria-label="Decay knob" data-value="50" data-min="0" data-max="100"></button>
-              <div class="knob-label">Decay</div>
-              <div class="knob-value mono">50</div>
-            </div>
-
-            <div class="knob" data-knob>
-              <button class="knob-ring inset" type="button" aria-label="Sustain knob" data-value="50" data-min="0" data-max="100"></button>
-              <div class="knob-label">Sustain</div>
-              <div class="knob-value mono">50</div>
-            </div>
-
-            <div class="knob" data-knob>
-              <button class="knob-ring inset" type="button" aria-label="Release knob" data-value="50" data-min="0" data-max="100"></button>
-              <div class="knob-label">Release</div>
-              <div class="knob-value mono">50</div>
-            </div>
-          </div>
-        </section>
-
-        <section class="block">
-          <h2 class="block-title">LFO</h2>
-          <div class="block-graph inset" aria-hidden="true">
-            <svg viewBox="0 0 100 40" preserveAspectRatio="none">
-              <polyline points="0,30 50,8 50,30 100,8"
-                        fill="none" stroke="currentColor" stroke-width="0.75"/>
-            </svg>
-          </div>
-
-          <div class="param-grid">
-            <div class="param inset"><div class="param-name">Wave</div><div class="param-value">Saw</div></div>
-            <div class="param inset"><div class="param-name">Rate</div><div class="param-value">—</div></div>
-            <div class="param inset"><div class="param-name">Amount</div><div class="param-value">—</div></div>
-            <div class="param inset"><div class="param-name">Beat Sync</div><div class="param-value">On</div></div>
-            <div class="param inset"><div class="param-name">Rate Sync</div><div class="param-value">1/16</div></div>
-          </div>
-        </section>
-      </section>
-    </section>
-  </main>
-</div>
-
-<script src="ui.js"></script>
-
+  <script src="./ui.js"></script>
+  <script src="./ui_knobs.js"></script>
 </body>
 </html>

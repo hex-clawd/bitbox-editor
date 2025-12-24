@@ -1,0 +1,41 @@
+/* --- UI: dropdowns styled like existing value cells --- */
+.select{
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font: inherit;
+  padding: 6px 28px 6px 10px;
+  border-radius: 0px;
+  line-height: 1.2;
+  cursor: pointer;
+  min-width: 0;
+  text-align: right;
+}
+
+/* caret */
+.kv{
+  position: relative;
+}
+.kv .select{
+  max-width: 60%;
+}
+.kv::after{
+  content:"▾";
+  position:absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/* remove caret on non-select kv rows */
+.kv:not(:has(.select))::after{
+  content: none;
+}

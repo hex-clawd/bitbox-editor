@@ -1,0 +1,39 @@
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font:14px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  display:flex;
+  justify-content:center;
+  padding:24px;
+}
+
+.app{
+  width:min(var(--app-max), 100%);
+  border:1px solid var(--line);
+  background:#07080a;
+}
+
+.toolbar{
+  height:var(--toolbar-h);
+  border-bottom:1px solid var(--line);
+  padding:14px 18px;
+}
+
+.pad-main{
+  height:var(--padmain-h);
+  border-bottom:1px solid var(--line);
+  padding:14px;
+}
+
+.placeholder{ color:var(--muted); }
+.mono{ font-variant-numeric: tabular-nums; }
+
+/* small utility: consistent inset stroke without repeating box-shadow everywhere */
+.inset{
+  box-shadow: inset 0 0 0 1px var(--line);
+  border-radius: var(--radius);
+}
