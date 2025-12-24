@@ -4,31 +4,71 @@
     <section class="block">
       <h2 class="block-title">Main Params</h2>
       <div class="block-knobs">
+        <!-- Level: -96.0 .. +12.0 dB (default 0.0dB) -->
         <div class="knob" data-knob>
-          <button class="knob-ring inset" type="button" aria-label="Level knob"></button>
+          <button
+            class="knob-ring inset"
+            type="button"
+            aria-label="Level knob"
+            data-min="-96"
+            data-max="12"
+            data-decimals="1"
+            data-unit="dB"
+            data-default="0"
+          ></button>
           <div class="knob-label">Level</div>
           <div class="knob-value mono">+0.0dB</div>
         </div>
 
+        <!-- Pitch: -24.0 .. +24.0 semitones (default 0.0) -->
         <div class="knob" data-knob>
-          <button class="knob-ring inset" type="button" aria-label="Pitch knob"></button>
+          <button
+            class="knob-ring inset"
+            type="button"
+            aria-label="Pitch knob"
+            data-min="-24"
+            data-max="24"
+            data-decimals="1"
+            data-unit="st"
+            data-default="0"
+          ></button>
           <div class="knob-label">Pitch</div>
-          <div class="knob-value mono">50</div>
+          <div class="knob-value mono">+0.0st</div>
         </div>
 
+        <!-- Filter: -100% .. +100% (default 0.0%) -->
         <div class="knob" data-knob>
-          <button class="knob-ring inset" type="button" aria-label="Filter knob"></button>
+          <button
+            class="knob-ring inset"
+            type="button"
+            aria-label="Filter knob"
+            data-min="-100"
+            data-max="100"
+            data-decimals="1"
+            data-unit="%"
+            data-default="0"
+          ></button>
           <div class="knob-label">Filter</div>
-          <div class="knob-value mono">50</div>
+          <div class="knob-value mono">+0.0%</div>
         </div>
 
+        <!-- Resonance: 0..100% (default 0.0%) -->
         <div class="knob" data-knob>
-          <button class="knob-ring inset" type="button" aria-label="Res knob"></button>
-          <div class="knob-label">Res</div>
-          <div class="knob-value mono">50</div>
+          <button
+            class="knob-ring inset"
+            type="button"
+            aria-label="Resonance knob"
+            data-min="0"
+            data-max="100"
+            data-decimals="1"
+            data-unit="%"
+            data-default="0"
+          ></button>
+          <div class="knob-label">Resonance</div>
+          <div class="knob-value mono">0.0%</div>
         </div>
 
-        <!-- Pan: -100.0% .. +100.0% -->
+        <!-- Pan: -100.0% .. +100.0% (default 0.0%) -->
         <div class="knob" data-knob>
           <button
             class="knob-ring inset"

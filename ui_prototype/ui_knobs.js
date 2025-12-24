@@ -2,7 +2,7 @@
    Knobs (file:// safe, no imports):
    - Vertical drag: up = more, down = less
    - Per-knob ranges/units via .knob-ring data-*
-   - Default Level = +0.0dB
+   - Optional log scale for feel (data-scale="log")
    ========================================================= */
 
 (function () {
@@ -13,18 +13,9 @@
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const lerp  = (a, b, t) => a + (b - a) * t;
 
-  // Map norm [0..1] to dB [-96..+12], where 0dB is the default
-  const LEVEL_DEFAULT_NORM = 96 / 108; // 0dB within [-96..+12]
-
   function setRotation(knobEl, norm){
     const rot = ROT_MIN + clamp(norm, 0, 1) * ROT_RANGE;
     knobEl.style.setProperty('--knob-rot', rot + 'deg');
-  }
-
-  function formatDb(v){
-    const r = Math.round(v * 10) / 10;
-    const sign = r > 0 ? '+' : '';
-    return `${sign}${r.toFixed(1)}dB`;
   }
 
   function getLabelText(knobEl){
@@ -44,77 +35,80 @@
     return Number.isFinite(n) ? n : null;
   }
 
-  function formatGeneric(value, cfg){
-    const decimals = cfg.decimals ?? 0;
-    const unit = cfg.unit ?? '';
-    const fixed = (Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals)).toFixed(decimals);
-
-    // show + sign when range crosses 0 (e.g. -100..+100)
-    const needsSign = (cfg.min < 0 && cfg.max > 0);
-    const sign = (needsSign && value > 0) ? '+' : '';
-    return `${sign}${fixed}${unit}`;
-  }
-
   function knobCfgFromRing(ring){
     const min = readNumberAttr(ring, 'data-min');
     const max = readNumberAttr(ring, 'data-max');
     const decimals = readNumberAttr(ring, 'data-decimals');
     const def = readNumberAttr(ring, 'data-default');
     const unit = ring?.getAttribute('data-unit') || '';
+    const scale = (ring?.getAttribute('data-scale') || '').toLowerCase();
 
     if (min == null || max == null || max === min) return null;
+
     return {
       min,
       max,
       decimals: (decimals == null ? 0 : decimals),
       unit,
-      defaultValue: def
+      defaultValue: def,
+      scale: (scale === 'log' ? 'log' : 'linear')
     };
+  }
+
+  function applyScale(norm, scale){
+    norm = clamp(norm, 0, 1);
+    if (scale !== 'log') return norm;
+
+    // "log feel" without requiring min>0:
+    // bias toward low values using an exponential curve.
+    // (This is perceptually close to log for time-ish params.)
+    const k = 4.0; // stronger = more compressed near 0
+    return (Math.exp(k * norm) - 1) / (Math.exp(k) - 1);
+  }
+
+  function formatValue(value, cfg){
+    const p = Math.pow(10, cfg.decimals);
+    const rounded = Math.round(value * p) / p;
+    const fixed = rounded.toFixed(cfg.decimals);
+
+    // show + sign when range crosses 0 (e.g. -24..+24, -100..+100)
+    const needsSign = (cfg.min < 0 && cfg.max > 0);
+    const sign = (needsSign && rounded > 0) ? '+' : '';
+    return `${sign}${fixed}${cfg.unit}`;
   }
 
   function render(knobEl, norm){
     knobEl.dataset.norm = String(norm);
     setRotation(knobEl, norm);
 
-    const label = getLabelText(knobEl);
     const valueEl = getValueEl(knobEl);
     if (!valueEl) return;
-
-    if (label === 'Level') {
-      valueEl.textContent = formatDb(lerp(-96, 12, norm));
-      return;
-    }
 
     const ring = knobEl.querySelector('.knob-ring');
     const cfg = knobCfgFromRing(ring);
 
-    if (cfg) {
-      const v = lerp(cfg.min, cfg.max, norm);
-      valueEl.textContent = formatGeneric(v, cfg);
+    if (!cfg) {
+      valueEl.textContent = String(Math.round(lerp(0, 100, norm)));
       return;
     }
 
-    // fallback
-    valueEl.textContent = String(Math.round(lerp(0, 100, norm)));
+    // scaled norm for feel (log)
+    const t = applyScale(norm, cfg.scale);
+    const v = lerp(cfg.min, cfg.max, t);
+
+    valueEl.textContent = formatValue(v, cfg);
   }
 
   function initKnob(knobEl){
     const ring = knobEl.querySelector('.knob-ring');
     if (!ring) return;
 
-    const label = getLabelText(knobEl);
+    const cfg = knobCfgFromRing(ring);
 
-    let norm;
+    let norm = 0.5;
 
-    if (label === 'Level') {
-      norm = LEVEL_DEFAULT_NORM;
-    } else {
-      const cfg = knobCfgFromRing(ring);
-      if (cfg && cfg.defaultValue != null) {
-        norm = clamp((cfg.defaultValue - cfg.min) / (cfg.max - cfg.min), 0, 1);
-      } else {
-        norm = 0.5;
-      }
+    if (cfg && cfg.defaultValue != null) {
+      norm = clamp((cfg.defaultValue - cfg.min) / (cfg.max - cfg.min), 0, 1);
     }
 
     render(knobEl, norm);

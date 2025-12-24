@@ -11,28 +11,71 @@
       </div>
 
       <div class="block-knobs block-knobs--4">
+        <!-- Attack: 0.0..100.0% (log) -->
         <div class="knob" data-knob>
-          <button class="knob-ring inset" type="button" aria-label="Attack knob"></button>
+          <button
+            class="knob-ring inset"
+            type="button"
+            aria-label="Attack knob"
+            data-min="0"
+            data-max="100"
+            data-decimals="1"
+            data-unit="%"
+            data-default="0"
+            data-scale="log"
+          ></button>
           <div class="knob-label">Attack</div>
-          <div class="knob-value mono">50</div>
+          <div class="knob-value mono">0.0%</div>
         </div>
 
+        <!-- Decay: 0.0..100.0% (log) -->
         <div class="knob" data-knob>
-          <button class="knob-ring inset" type="button" aria-label="Decay knob"></button>
+          <button
+            class="knob-ring inset"
+            type="button"
+            aria-label="Decay knob"
+            data-min="0"
+            data-max="100"
+            data-decimals="1"
+            data-unit="%"
+            data-default="0"
+            data-scale="log"
+          ></button>
           <div class="knob-label">Decay</div>
-          <div class="knob-value mono">50</div>
+          <div class="knob-value mono">0.0%</div>
         </div>
 
+        <!-- Sustain: 0.0..100.0% (linear) -->
         <div class="knob" data-knob>
-          <button class="knob-ring inset" type="button" aria-label="Sustain knob"></button>
+          <button
+            class="knob-ring inset"
+            type="button"
+            aria-label="Sustain knob"
+            data-min="0"
+            data-max="100"
+            data-decimals="1"
+            data-unit="%"
+            data-default="100"
+          ></button>
           <div class="knob-label">Sustain</div>
-          <div class="knob-value mono">50</div>
+          <div class="knob-value mono">100.0%</div>
         </div>
 
+        <!-- Release: 0..100% (log, integer) -->
         <div class="knob" data-knob>
-          <button class="knob-ring inset" type="button" aria-label="Release knob"></button>
+          <button
+            class="knob-ring inset"
+            type="button"
+            aria-label="Release knob"
+            data-min="0"
+            data-max="100"
+            data-decimals="0"
+            data-unit="%"
+            data-default="0"
+            data-scale="log"
+          ></button>
           <div class="knob-label">Release</div>
-          <div class="knob-value mono">50</div>
+          <div class="knob-value mono">0%</div>
         </div>
       </div>
     </section>
