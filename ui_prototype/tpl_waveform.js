@@ -30,6 +30,18 @@
       <!-- big-number params under detail waveform -->
       <section class="wf-footer" aria-label="Sample range parameters">
         <div class="kv kv--wide inset">
+          <div class="k">Pad Type</div>
+          <div class="v">
+            <select class="select" aria-label="Pad Type" data-pad-type-select>
+              <option selected>Sample</option>
+              <option>Multisample</option>
+              <option>Clip</option>
+              <option>Slicer</option>
+              <option>Granular</option>
+            </select>
+          </div>
+        </div>
+        <div class="kv kv--wide inset">
           <div class="k">Sample Start</div>
           <div class="v mono">12,345,678</div>
         </div>

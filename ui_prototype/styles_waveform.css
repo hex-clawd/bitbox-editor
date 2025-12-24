@@ -118,7 +118,7 @@
 /* footer params below detail waveform */
 .wf-footer{
   display:grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap:10px;
 }
 
@@ -139,4 +139,9 @@
   text-overflow:ellipsis;
   white-space:nowrap;
   max-width: 70%;
+}
+
+/* Pad Type select in footer */
+.kv--wide .v .select{
+  max-width: 100%;
 }
