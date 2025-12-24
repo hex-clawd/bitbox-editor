@@ -40,6 +40,43 @@
   content: none;
 }
 
+/* --- UI: number input styled like select/value --- */
+.num{
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font: inherit;
+  padding: 6px 10px;
+  border-radius: 0px;
+  line-height: 1.2;
+  width: 92px;
+  text-align: right;
+}
+
+.num:focus,
+.select:focus{
+  outline: 2px solid rgba(255,255,255,0.18);
+  outline-offset: 2px;
+}
+
+/* hide spinners (clean hardware-ish look) */
+.num::-webkit-outer-spin-button,
+.num::-webkit-inner-spin-button{
+  -webkit-appearance: none;
+  margin: 0;
+}
+.num{
+  -moz-appearance: textfield;
+}
+
+/* optional unit suffix (beats) */
+.unit-suffix{
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0.9;
+}
+
 /* --- UI: checkbox (no redundant text) --- */
 .check{
   display:inline-flex;

@@ -106,6 +106,13 @@
     <section class="block">
       <h2 class="block-title">Misc</h2>
       <div class="kv-grid">
+        <!-- NEW: Clip Mode loop switch -->
+        <div class="kv inset kv--check">
+          <div class="k">Loop Mode(C)</div>
+          <label class="check" aria-label="Loop Mode (Clip)"><input type="checkbox" /></label>
+        </div>
+
+        <!-- Existing sample loop behavior -->
         <div class="kv inset">
           <div class="k">Loop Mode</div>
           <div class="v">
@@ -126,15 +133,51 @@
           </div>
         </div>
 
-        <!-- checkbox sits directly in the row (no .v wrapper) -->
         <div class="kv inset kv--check">
           <div class="k">Reverse</div>
           <label class="check" aria-label="Reverse"><input type="checkbox" /></label>
         </div>
 
-        <div class="kv inset"><div class="k">Beat Count</div><div class="v">16</div></div>
-        <div class="kv inset"><div class="k">Quant Size</div><div class="v">1 bar</div></div>
-        <div class="kv inset"><div class="k">Sync</div><div class="v">1/8</div></div>
+        <!-- Beat Count: numeric input 0(Auto)..512 -->
+        <div class="kv inset">
+          <div class="k">Beat Count</div>
+          <div class="v">
+            <input class="num" type="number" min="0" max="512" step="1" value="0" aria-label="Beat Count (0 = Auto)" />
+            <span class="unit-suffix mono">beats</span>
+          </div>
+        </div>
+
+        <div class="kv inset">
+          <div class="k">Quant Size</div>
+          <div class="v">
+            <select class="select" aria-label="Quant Size">
+              <option selected>None</option>
+              <option>1/16</option>
+              <option>1/8</option>
+              <option>1/4</option>
+              <option>1/2</option>
+              <option>1 bar</option>
+              <option>2 bars</option>
+              <option>4 bars</option>
+              <option>8 bars</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="kv inset">
+          <div class="k">Sync</div>
+          <div class="v">
+            <select class="select" aria-label="Sync">
+              <option selected>None</option>
+              <option>1/16</option>
+              <option>1/8</option>
+              <option>1/4</option>
+              <option>1/2</option>
+              <option>1 bar</option>
+              <option>Slice</option>
+            </select>
+          </div>
+        </div>
       </div>
     </section>
   `;
