@@ -1,6 +1,7 @@
 /* =========================================================
    Knobs (file:// safe, no imports):
    - Vertical drag: up = more, down = less
+   - Per-knob ranges/units via .knob-ring data-*
    - Default Level = +0.0dB
    ========================================================= */
 
@@ -35,6 +36,42 @@
     return knobEl.querySelector('.knob-value');
   }
 
+  function readNumberAttr(el, name){
+    if (!el) return null;
+    const raw = el.getAttribute(name);
+    if (raw == null || raw === '') return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function formatGeneric(value, cfg){
+    const decimals = cfg.decimals ?? 0;
+    const unit = cfg.unit ?? '';
+    const fixed = (Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals)).toFixed(decimals);
+
+    // show + sign when range crosses 0 (e.g. -100..+100)
+    const needsSign = (cfg.min < 0 && cfg.max > 0);
+    const sign = (needsSign && value > 0) ? '+' : '';
+    return `${sign}${fixed}${unit}`;
+  }
+
+  function knobCfgFromRing(ring){
+    const min = readNumberAttr(ring, 'data-min');
+    const max = readNumberAttr(ring, 'data-max');
+    const decimals = readNumberAttr(ring, 'data-decimals');
+    const def = readNumberAttr(ring, 'data-default');
+    const unit = ring?.getAttribute('data-unit') || '';
+
+    if (min == null || max == null || max === min) return null;
+    return {
+      min,
+      max,
+      decimals: (decimals == null ? 0 : decimals),
+      unit,
+      defaultValue: def
+    };
+  }
+
   function render(knobEl, norm){
     knobEl.dataset.norm = String(norm);
     setRotation(knobEl, norm);
@@ -47,6 +84,17 @@
       valueEl.textContent = formatDb(lerp(-96, 12, norm));
       return;
     }
+
+    const ring = knobEl.querySelector('.knob-ring');
+    const cfg = knobCfgFromRing(ring);
+
+    if (cfg) {
+      const v = lerp(cfg.min, cfg.max, norm);
+      valueEl.textContent = formatGeneric(v, cfg);
+      return;
+    }
+
+    // fallback
     valueEl.textContent = String(Math.round(lerp(0, 100, norm)));
   }
 
@@ -56,7 +104,19 @@
 
     const label = getLabelText(knobEl);
 
-    let norm = (label === 'Level') ? LEVEL_DEFAULT_NORM : 0.5;
+    let norm;
+
+    if (label === 'Level') {
+      norm = LEVEL_DEFAULT_NORM;
+    } else {
+      const cfg = knobCfgFromRing(ring);
+      if (cfg && cfg.defaultValue != null) {
+        norm = clamp((cfg.defaultValue - cfg.min) / (cfg.max - cfg.min), 0, 1);
+      } else {
+        norm = 0.5;
+      }
+    }
+
     render(knobEl, norm);
 
     let dragging = false;
