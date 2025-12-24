@@ -14,11 +14,6 @@
     .map(v => `<option${v === '1/16' ? ' selected' : ''}>${v}</option>`)
     .join('');
 
-  const onOffOptions = (selected) => ([
-    `<option${selected === 'On' ? ' selected' : ''}>On</option>`,
-    `<option${selected === 'Off' ? ' selected' : ''}>Off</option>`
-  ]).join('');
-
   window.UI_TEMPLATES['tpl-panel-mod'] = `
     <section class="block">
       <h2 class="block-title">Envelope (ADSR)</h2>
@@ -30,7 +25,6 @@
       </div>
 
       <div class="block-knobs block-knobs--4">
-        <!-- Attack: 0.0..100.0% (log) -->
         <div class="knob" data-knob>
           <button class="knob-ring inset" type="button" aria-label="Attack knob"
             data-min="0" data-max="100" data-decimals="1" data-unit="%"
@@ -39,7 +33,6 @@
           <div class="knob-value mono">0.0%</div>
         </div>
 
-        <!-- Decay: 0.0..100.0% (log) -->
         <div class="knob" data-knob>
           <button class="knob-ring inset" type="button" aria-label="Decay knob"
             data-min="0" data-max="100" data-decimals="1" data-unit="%"
@@ -48,7 +41,6 @@
           <div class="knob-value mono">0.0%</div>
         </div>
 
-        <!-- Sustain: 0.0..100.0% (linear) -->
         <div class="knob" data-knob>
           <button class="knob-ring inset" type="button" aria-label="Sustain knob"
             data-min="0" data-max="100" data-decimals="1" data-unit="%"
@@ -57,7 +49,6 @@
           <div class="knob-value mono">100.0%</div>
         </div>
 
-        <!-- Release: 0..100% (log) -->
         <div class="knob" data-knob>
           <button class="knob-ring inset" type="button" aria-label="Release knob"
             data-min="0" data-max="100" data-decimals="0" data-unit="%"
@@ -94,7 +85,6 @@
               <button class="knob-ring inset" type="button" aria-label="LFO Rate knob"
                 data-min="0" data-max="100" data-decimals="1" data-unit="%"
                 data-default="50"></button>
-              <div class="knob-label">Rate</div>
               <div class="knob-value mono">50.0%</div>
             </div>
           </div>
@@ -117,7 +107,6 @@
               <button class="knob-ring inset" type="button" aria-label="LFO Depth knob"
                 data-min="0" data-max="100" data-decimals="1" data-unit="%"
                 data-default="0"></button>
-              <div class="knob-label">Depth</div>
               <div class="knob-value mono">0.0%</div>
             </div>
           </div>
@@ -126,18 +115,20 @@
         <div class="param inset">
           <div class="param-name">Beat</div>
           <div class="param-value">
-            <select aria-label="LFO Beat" class="select">
-              ${onOffOptions('On')}
-            </select>
+            <label class="check" aria-label="LFO Beat">
+              <input type="checkbox" checked />
+              <span>On</span>
+            </label>
           </div>
         </div>
 
         <div class="param inset">
           <div class="param-name">Trig</div>
           <div class="param-value">
-            <select aria-label="LFO Trig" class="select">
-              ${onOffOptions('Off')}
-            </select>
+            <label class="check" aria-label="LFO Trig">
+              <input type="checkbox" />
+              <span>On</span>
+            </label>
           </div>
         </div>
       </div>

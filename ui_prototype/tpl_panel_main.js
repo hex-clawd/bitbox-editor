@@ -105,7 +105,6 @@
       </div>
     </section>
 
-    <!-- ===================== MISC (UPDATED) ===================== -->
     <section class="block">
       <h2 class="block-title">Misc</h2>
       <div class="kv-grid">
@@ -134,10 +133,10 @@
         <div class="kv inset">
           <div class="k">Reverse</div>
           <div class="v">
-            <select class="select">
-              <option>Off</option>
-              <option>On</option>
-            </select>
+            <label class="check" aria-label="Reverse">
+              <input type="checkbox" />
+              <span>On</span>
+            </label>
           </div>
         </div>
 
