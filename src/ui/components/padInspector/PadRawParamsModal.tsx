@@ -1,4 +1,3 @@
-import React from "react";
 import type { Pad } from "../../../core/domain/bitboxPreset";
 import PadRawParamsSection from "./PadRawParamsSection";
 import DebugModal from "../debug/DebugModal";

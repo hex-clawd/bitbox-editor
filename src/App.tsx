@@ -12,7 +12,6 @@ import { ensurePadAt } from "./core/domain/presetEdit";
 
 export default function App() {
   const {
-    folderPath,
     presetFiles,
     error,
     isBusy,

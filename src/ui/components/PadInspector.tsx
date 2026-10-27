@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import type { Pad } from "../../core/domain/bitboxPreset";
 import PadInspectorHeader from "./padInspector/PadInspectorHeader";
 import PadMainParamsSection from "./padInspector/PadMainParamsSection";

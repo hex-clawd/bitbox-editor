@@ -24,6 +24,8 @@ export function ensurePadAt(
     padMode: "sample",
     filename: "",
     params: {},
+    midiIn: 0,
+    padNote: 0,
     slices: undefined,
     assets: [],
     meta: { createdByEditor: "1" },

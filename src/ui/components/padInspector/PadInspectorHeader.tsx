@@ -1,4 +1,3 @@
-import React from "react";
 import type { Pad } from "../../../core/domain/bitboxPreset";
 
 type Props = {

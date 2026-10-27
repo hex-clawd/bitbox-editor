@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import type { Pad } from "../../../core/domain/bitboxPreset";
 import ParamRowsSection from "./ParamRowsSection";
 import { buildBlackboxMainRows } from "../../viewModels/blackboxParamView";

@@ -7,13 +7,11 @@ export type ListedFile = {
 };
 
 export async function listFolderOnce(folderPath: string): Promise<ListedFile[]> {
-    const entries = await readDir(folderPath, { recursive: false });
+    const entries = await readDir(folderPath);
 
     return entries.map((e) => {
         const name = e.name ?? "(no name)";
-        const fullPath =
-            e.path ??
-            (folderPath.endsWith("/") ? `${folderPath}${name}` : `${folderPath}/${name}`);
+        const fullPath = folderPath.endsWith("/") ? `${folderPath}${name}` : `${folderPath}/${name}`;
 
         return {
             name,

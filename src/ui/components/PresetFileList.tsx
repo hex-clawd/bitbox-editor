@@ -1,4 +1,3 @@
-import React from "react";
 import type { ListedFile } from "../../services/fs/tauriFs";
 
 type Props = {
